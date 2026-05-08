@@ -14,7 +14,10 @@
     "@parcel-society/shared": "workspace:*",
     "next": "^15.3.2",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "@parcel-society/db": "workspace:*",
+    "@parcel-society/engine": "workspace:*",
+    "zod": "^3.24.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.6",
