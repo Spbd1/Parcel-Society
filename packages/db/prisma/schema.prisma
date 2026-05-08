@@ -6,3 +6,383 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum UserRole {
+  PARTICIPANT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ServerStatus {
+  DRAFT
+  WAITING
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum InequalityCondition {
+  LOW
+  HIGH
+}
+
+enum UncertaintyCondition {
+  STABLE
+  UNCERTAIN
+}
+
+enum SeasonStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum RoundStatus {
+  PENDING
+  ACTIVE
+  RESOLVED
+}
+
+enum ActionType {
+  PRODUCE
+  PRODUCTIVE_INVESTMENT
+  SAFE_ASSET
+  PUBLIC_CONTRIBUTION
+  INFORMAL_CONTRACT
+  FORMAL_CONTRACT
+  LOBBYING
+  EXIT
+}
+
+enum ContractType {
+  FORMAL
+  INFORMAL
+}
+
+enum ServerEventType {
+  TAX_CHANGE
+  FORMAL_CONTRACT_FEE_CHANGE
+  SHOCK_PROBABILITY_CHANGE
+  RESOURCE_SHOCK
+  INFO
+}
+
+enum TreasuryTransactionType {
+  CONTRIBUTION
+  TAX
+  FEE
+  FINE
+  PUBLIC_SPENDING
+  PAYOUT
+  ADJUSTMENT
+}
+
+enum ExportJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id                    String                 @id @default(cuid())
+  anonymousId           String                 @unique @default(cuid())
+  email                 String?                @unique
+  role                  UserRole               @default(PARTICIPANT)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  adminProfile          AdminUser?
+  players               Player[]
+  comprehensionChecks   ComprehensionCheck[]
+  exportJobs            ExportJob[]            @relation("ExportJobRequester")
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+model AdminUser {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  email     String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditLogs AuditLog[]
+
+  @@index([createdAt])
+}
+
+model Server {
+  id                   String                 @id @default(cuid())
+  name                 String                 @unique
+  description          String?
+  status               ServerStatus           @default(DRAFT)
+  inequalityCondition  InequalityCondition
+  uncertaintyCondition UncertaintyCondition
+  maxPlayers           Int
+  currentRound         Int                    @default(0)
+  seasonLength         Int                    @default(7)
+  treasury             Decimal                @default(0) @db.Decimal(14, 2)
+  randomSeed           String
+  config               Json                   @default("{}")
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  serverConfigs        ServerConfig[]
+  seasons              Season[]
+  rounds               Round[]
+  players              Player[]
+  parcels              Parcel[]
+  playerRoundStates    PlayerRoundState[]
+  decisions            Decision[]
+  contracts            Contract[]
+  events               ServerEvent[]
+  treasuryTransactions TreasuryTransaction[]
+  comprehensionChecks  ComprehensionCheck[]
+  exportJobs           ExportJob[]
+
+  @@index([status])
+  @@index([inequalityCondition, uncertaintyCondition])
+  @@index([createdAt])
+}
+
+model ServerConfig {
+  id        String   @id @default(cuid())
+  serverId  String
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([serverId, key])
+  @@index([serverId])
+}
+
+model Season {
+  id        String       @id @default(cuid())
+  serverId  String
+  startsAt  DateTime
+  endsAt    DateTime
+  status    SeasonStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  server    Server       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  rounds    Round[]
+
+  @@index([serverId, status])
+  @@index([startsAt, endsAt])
+}
+
+model Round {
+  id          String      @id @default(cuid())
+  seasonId    String
+  serverId    String
+  roundNumber Int
+  status      RoundStatus @default(PENDING)
+  startsAt    DateTime
+  endsAt      DateTime
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  season      Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  server      Server      @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, roundNumber])
+  @@unique([serverId, roundNumber])
+  @@index([serverId, status])
+  @@index([startsAt, endsAt])
+}
+
+model Player {
+  id                      String                @id @default(cuid())
+  userId                  String
+  serverId                String
+  parcelId                String                @unique
+  wealth                  Decimal               @default(0) @db.Decimal(14, 2)
+  productiveCapital       Decimal               @default(0) @db.Decimal(14, 2)
+  safeAsset               Decimal               @default(0) @db.Decimal(14, 2)
+  reputation              Decimal               @default(0) @db.Decimal(8, 2)
+  exited                  Boolean               @default(false)
+  roundExited             Int?
+  createdAt               DateTime              @default(now())
+  user                    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server                  Server                @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  parcel                  Parcel                @relation("PlayerParcel", fields: [parcelId], references: [id])
+  ownedParcel             Parcel?               @relation("ParcelOwner")
+  roundStates             PlayerRoundState[]
+  decisions               Decision[]            @relation("PlayerDecisions")
+  targetedDecisions       Decision[]            @relation("DecisionTargetPlayer")
+  sentContracts           Contract[]            @relation("ContractSender")
+  receivedContracts       Contract[]            @relation("ContractReceiver")
+  treasuryTransactions    TreasuryTransaction[]
+
+  @@unique([userId, serverId])
+  @@index([serverId])
+  @@index([exited])
+}
+
+model Parcel {
+  id             String   @id @default(cuid())
+  serverId       String
+  x              Int
+  y              Int
+  soil           Decimal  @db.Decimal(8, 4)
+  water          Decimal  @db.Decimal(8, 4)
+  marketAccess   Decimal  @db.Decimal(8, 4)
+  risk           Decimal  @db.Decimal(8, 4)
+  quality        Decimal  @db.Decimal(8, 4)
+  ownerId        String?  @unique
+  server         Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  assignedPlayer Player?  @relation("PlayerParcel")
+  owner          Player?  @relation("ParcelOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@unique([serverId, x, y])
+  @@index([serverId])
+  @@index([quality])
+}
+
+model PlayerRoundState {
+  id                String   @id @default(cuid())
+  playerId          String
+  serverId          String
+  roundNumber       Int
+  wealth            Decimal  @db.Decimal(14, 2)
+  productiveCapital Decimal  @db.Decimal(14, 2)
+  safeAsset         Decimal  @db.Decimal(14, 2)
+  reputation        Decimal  @db.Decimal(8, 2)
+  exited            Boolean  @default(false)
+  state             Json     @default("{}")
+  createdAt         DateTime @default(now())
+  player            Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  server            Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, roundNumber])
+  @@index([serverId, roundNumber])
+}
+
+model Decision {
+  id             String     @id @default(cuid())
+  playerId       String
+  serverId       String
+  roundNumber    Int
+  actionType     ActionType
+  amount         Decimal    @db.Decimal(14, 2)
+  targetPlayerId String?
+  payload        Json       @default("{}")
+  createdAt      DateTime   @default(now())
+  player         Player     @relation("PlayerDecisions", fields: [playerId], references: [id], onDelete: Cascade)
+  server         Server     @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  targetPlayer   Player?    @relation("DecisionTargetPlayer", fields: [targetPlayerId], references: [id], onDelete: SetNull)
+
+  @@index([playerId, roundNumber])
+  @@index([serverId, roundNumber])
+  @@index([actionType])
+  @@index([targetPlayerId])
+}
+
+model Contract {
+  id           String       @id @default(cuid())
+  senderId     String
+  receiverId   String
+  serverId     String
+  roundNumber  Int
+  contractType ContractType
+  value        Decimal      @db.Decimal(14, 2)
+  fee          Decimal      @default(0) @db.Decimal(14, 2)
+  fulfilled    Boolean?
+  defaulted    Boolean?
+  createdAt    DateTime     @default(now())
+  resolvedAt   DateTime?
+  sender       Player       @relation("ContractSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver     Player       @relation("ContractReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  server       Server       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId, roundNumber])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([contractType])
+}
+
+model ServerEvent {
+  id          String          @id @default(cuid())
+  serverId    String
+  roundNumber Int
+  eventType   ServerEventType
+  value       Json
+  createdAt   DateTime        @default(now())
+  server      Server          @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([serverId, roundNumber])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model TreasuryTransaction {
+  id          String                  @id @default(cuid())
+  serverId    String
+  playerId    String?
+  roundNumber Int?
+  type        TreasuryTransactionType
+  amount      Decimal                 @db.Decimal(14, 2)
+  description String
+  createdAt   DateTime                @default(now())
+  server      Server                  @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  player      Player?                 @relation(fields: [playerId], references: [id], onDelete: SetNull)
+
+  @@index([serverId, roundNumber])
+  @@index([playerId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  adminId    String?
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime   @default(now())
+  admin      AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([adminId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model ComprehensionCheck {
+  id        String   @id @default(cuid())
+  userId    String
+  serverId  String?
+  passed    Boolean  @default(false)
+  score     Int
+  attempts  Int      @default(1)
+  answers   Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server    Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([serverId])
+  @@index([passed])
+}
+
+model ExportJob {
+  id            String          @id @default(cuid())
+  requestedById String
+  serverId      String?
+  status        ExportJobStatus @default(PENDING)
+  filePath      String?
+  error         String?
+  createdAt     DateTime        @default(now())
+  completedAt   DateTime?
+  requestedBy   User            @relation("ExportJobRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  server        Server?         @relation(fields: [serverId], references: [id], onDelete: SetNull)
+
+  @@index([requestedById])
+  @@index([serverId])
+  @@index([status])
+  @@index([createdAt])
+}
