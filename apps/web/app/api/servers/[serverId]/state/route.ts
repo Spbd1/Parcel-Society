@@ -13,10 +13,15 @@ export async function GET(_request: Request, context: { params: Promise<{ server
       include: {
         parcels: true,
         rounds: { orderBy: { roundNumber: "desc" }, take: 1 },
-        players: { select: { id: true, parcelId: true, wealth: true, exited: true } },
+        players: { select: { id: true, parcelId: true, wealth: true, reputation: true, exited: true } },
       },
     });
-    return applyAuthCookie(apiOk({ server, player }), auth);
+    const roundNumber = server?.rounds[0]?.roundNumber ?? server?.currentRound ?? 0;
+    const decisions = await prisma.decision.findMany({
+      where: { serverId, playerId: player.id, roundNumber },
+      orderBy: { createdAt: "asc" },
+    });
+    return applyAuthCookie(apiOk({ server, player, decisions }), auth);
   } catch (error) {
     return handleApiError(error);
   }

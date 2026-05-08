@@ -1,69 +1,51 @@
 import Link from "next/link";
 
-import {
-  APP_NAME,
-  DEFAULT_ACTION_POINTS,
-  DEFAULT_MAP_HEIGHT,
-  DEFAULT_MAP_WIDTH,
-  DEFAULT_SEASON_LENGTH,
-} from "@parcel-society/shared";
+import { APP_NAME } from "@parcel-society/shared";
 
-const links = [
-  { href: "/participant", label: "Participant Demo" },
-  { href: "/admin", label: "Admin" },
-  { href: "/docs", label: "Documentation" },
+const highlights = [
+  "Make choices over 7 short rounds.",
+  "Use 3 action points each round.",
+  "Balance private investment, public contribution, contracts, lobbying, and exit.",
 ];
 
 export default function HomePage() {
   return (
-    <section className="space-y-8">
-      <div className="space-y-4">
+    <section className="space-y-10">
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12">
         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-          Research software foundation
+          Participant research game
         </p>
-        <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
-          {APP_NAME}
+        <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-6xl">
+          Welcome to {APP_NAME}
         </h1>
-        <p className="max-w-3xl text-lg leading-8 text-slate-700">
-          Parcel Society is a minimal online behavioral-game platform for
-          reproducible experiments on spatial inequality, institutional
-          uncertainty, cooperation, investment, public-good contribution,
-          contract reliability, rent-seeking, and exit.
+        <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-700">
+          Parcel Society is a simple online decision game about land parcels,
+          investment, cooperation, rules, and uncertainty. You will manage one
+          parcel, make round-by-round decisions, and see how your choices affect
+          your standing and the server as a whole.
         </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        {links.map((link) => (
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            className="rounded-md bg-slate-950 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-            href={link.href}
-            key={link.href}
+            className="rounded-lg bg-emerald-700 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-emerald-800"
+            href="/tutorial"
           >
-            {link.label}
+            Join Available Server
           </Link>
-        ))}
+          <Link
+            className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            href="/admin"
+          >
+            Admin Login
+          </Link>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold text-slate-950">Map</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            MVP target: {DEFAULT_MAP_WIDTH}x{DEFAULT_MAP_HEIGHT} parcel
-            societies.
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold text-slate-950">Rounds</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            {DEFAULT_SEASON_LENGTH} decision rounds per experimental season.
-          </p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="font-semibold text-slate-950">Actions</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            {DEFAULT_ACTION_POINTS} action points per participant each round.
-          </p>
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {highlights.map((highlight) => (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5" key={highlight}>
+            <p className="text-sm leading-6 text-slate-700">{highlight}</p>
+          </div>
+        ))}
       </div>
     </section>
   );

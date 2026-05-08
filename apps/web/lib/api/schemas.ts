@@ -27,6 +27,10 @@ export const submitDecisionsSchema = z.object({
   decisions: z.array(decisionActionSchema).min(1),
 });
 
+export const comprehensionCheckSchema = z.object({
+  answers: z.array(z.enum(["a", "b", "c"])).length(5),
+});
+
 export const createServerSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
