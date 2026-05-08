@@ -8,20 +8,14 @@ export async function GET(_request: Request, context: { params: Promise<{ server
     const { serverId } = serverIdParamsSchema.parse(await context.params);
     const auth = await getParticipantAuth();
     const player = await assertParticipantOnServer(auth.user.id, serverId);
-    const latest = await prisma.playerRoundState.findFirst({
-      where: { serverId, playerId: player.id },
-      orderBy: { roundNumber: "desc" },
-    });
-    const roundNumber = latest?.roundNumber ?? 0;
-    const [decisions, contracts, events, server] = await Promise.all([
-      prisma.decision.findMany({ where: { serverId, playerId: player.id, roundNumber } }),
+    const [server, decisions, contracts] = await Promise.all([
+      prisma.server.findUnique({ where: { id: serverId }, include: { players: true } }),
+      prisma.decision.findMany({ where: { serverId, playerId: player.id } }),
       prisma.contract.findMany({
-        where: { serverId, roundNumber, OR: [{ senderId: player.id }, { receiverId: player.id }] },
+        where: { serverId, OR: [{ senderId: player.id }, { receiverId: player.id }] },
       }),
-      prisma.serverEvent.findMany({ where: { serverId, roundNumber } }),
-      prisma.server.findUnique({ where: { id: serverId } }),
     ]);
-    return applyAuthCookie(apiOk({ summary: latest, decisions, contracts, events, server, player }), auth);
+    return applyAuthCookie(apiOk({ server, player, decisions, contracts }), auth);
   } catch (error) {
     return handleApiError(error);
   }
