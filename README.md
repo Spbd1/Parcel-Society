@@ -99,7 +99,43 @@ NODE_ENV="development"
 - `pnpm db:generate` - generate the Prisma client
 - `pnpm db:migrate` - run local Prisma migrations
 - `pnpm db:studio` - open Prisma Studio
-- `pnpm seed` - run the placeholder seed script
+- `pnpm seed` - seed one admin and the four demo treatment servers
+
+## Database Migrations
+
+Parcel Society uses Prisma with PostgreSQL. The schema lives at `packages/db/prisma/schema.prisma` and the generated client is exposed by `@parcel-society/db`.
+
+1. Start PostgreSQL locally, for example with Docker Compose:
+
+   ```bash
+   docker compose up postgres -d
+   ```
+
+2. Copy `.env.example` to `.env` and set `DATABASE_URL`:
+
+   ```bash
+   DATABASE_URL="postgresql://parcel:parcel_password@localhost:5432/parcel_society?schema=public"
+   ```
+
+3. Create and apply a migration after schema changes:
+
+   ```bash
+   pnpm db:migrate -- --name describe_change
+   ```
+
+4. Regenerate the Prisma client when the schema changes:
+
+   ```bash
+   pnpm db:generate
+   ```
+
+5. Seed the development database with one admin and the four 2x2 treatment demo servers:
+
+   ```bash
+   pnpm seed
+   ```
+
+For non-development deployments, run Prisma migrations during release using the same schema path, for example `pnpm --filter @parcel-society/db prisma migrate deploy --schema prisma/schema.prisma`.
 
 ## Roadmap
 
