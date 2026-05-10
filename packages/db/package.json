@@ -18,10 +18,12 @@
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:studio": "prisma studio --schema prisma/schema.prisma",
     "seed": "tsx scripts/seed.ts",
-    "db:deploy": "prisma db push --schema prisma/schema.prisma"
+    "db:deploy": "prisma db push --schema prisma/schema.prisma",
+    "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.7.0"
+    "@prisma/client": "^6.7.0",
+    "@parcel-society/engine": "workspace:*"
   },
   "devDependencies": {
     "prisma": "^6.7.0",

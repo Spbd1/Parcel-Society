@@ -15,7 +15,8 @@
     "db:generate": "pnpm --filter @parcel-society/db db:generate",
     "db:migrate": "pnpm --filter @parcel-society/db db:migrate",
     "db:studio": "pnpm --filter @parcel-society/db db:studio",
-    "seed": "pnpm --filter @parcel-society/db seed"
+    "seed": "pnpm --filter @parcel-society/db seed",
+    "seed:demo": "pnpm --filter @parcel-society/db seed:demo"
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",

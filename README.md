@@ -83,8 +83,8 @@ Copy `.env.example` to `.env` and update values as needed.
 ```bash
 DATABASE_URL="postgresql://parcel:parcel_password@localhost:5432/parcel_society?schema=public"
 APP_SECRET="replace-with-a-long-random-secret"
-ADMIN_EMAIL="admin@example.org"
-ADMIN_PASSWORD="replace-with-a-development-password"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="changeme"
 NODE_ENV="development"
 ```
 
@@ -100,6 +100,26 @@ NODE_ENV="development"
 - `pnpm db:migrate` - run local Prisma migrations
 - `pnpm db:studio` - open Prisma Studio
 - `pnpm seed` - seed one admin and the four demo treatment servers
+- `pnpm seed:demo` - create the full local demo experiment with maps, anonymous players, synthetic decisions, and resolved rounds
+
+## Demo Mode
+
+Create a complete local demo experiment after installing dependencies, generating the Prisma client, and applying migrations:
+
+```bash
+pnpm seed:demo
+```
+
+The demo seed creates one admin account, four active 2x2 treatment servers, a 10x10 map for each server, 20 anonymous demo participants per server, parcel assignments, a 7-round active season, synthetic decisions for rounds 1-3, resolved round states, contracts, treasury transactions, events, and dashboard-ready analytics. Running it again replaces the existing demo servers with a fresh deterministic demo dataset.
+
+Demo login:
+
+```text
+admin@example.com
+changeme
+```
+
+Warning: Demo credentials are only for local development. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for any shared or deployed environment.
 
 ## Database Migrations
 
@@ -133,6 +153,12 @@ Parcel Society uses Prisma with PostgreSQL. The schema lives at `packages/db/pri
 
    ```bash
    pnpm seed
+   ```
+
+6. Or create the complete demo mode dataset with active servers, players, synthetic decisions, and three resolved rounds:
+
+   ```bash
+   pnpm seed:demo
    ```
 
 For non-development deployments, run Prisma migrations during release using the same schema path, for example `pnpm --filter @parcel-society/db prisma migrate deploy --schema prisma/schema.prisma`.
