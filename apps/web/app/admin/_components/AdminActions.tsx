@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 type ActionKind = "patch" | "post" | "export";
 
@@ -13,12 +13,6 @@ type Action = {
   body?: Record<string, unknown>;
   destructive?: boolean;
   preview?: { submitted: number; missing: number; currentRound: number; nextRound: number };
-};
-
-const authHeader = () => {
-  if (typeof window === "undefined") return {};
-  const token = window.localStorage.getItem("parcel_admin_basic");
-  return token ? { Authorization: `Basic ${token}` } : {};
 };
 
 export function ConfirmDialog({ action, onClose, onConfirm, busy }: { action: Action | null; onClose: () => void; onConfirm: () => void; busy: boolean }) {
@@ -50,7 +44,6 @@ export function AdminActions({ actions }: { actions: Action[] }) {
   const [pending, setPending] = useState<Action | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const headers = useMemo(() => ({ "Content-Type": "application/json", ...authHeader() }), []);
 
   const run = async (action: Action) => {
     setBusy(true);
@@ -58,7 +51,7 @@ export function AdminActions({ actions }: { actions: Action[] }) {
     try {
       const response = await fetch(action.url, {
         method: action.kind === "patch" ? "PATCH" : "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: action.kind === "patch" || action.body ? JSON.stringify(action.body ?? {}) : undefined,
       });
       const data = await response.json().catch(() => ({}));

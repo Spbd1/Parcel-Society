@@ -91,7 +91,6 @@ const demoConfig = (spec: (typeof demoServerSpecs)[number]): EngineConfig => ({
   startingWealth: 100,
   investmentUnitCost: 10,
   safeAssetReturn: 0.03,
-  publicGoodMultiplier: 1.5,
   lobbyingCost: 5,
 });
 
@@ -397,7 +396,6 @@ const resolveSeedRound = async ({
         informalDefaultRisk: config.informalDefaultRisk,
         formalDefaultRisk: config.formalDefaultRisk,
         safeAssetReturn: config.safeAssetReturn,
-        publicGoodMultiplier: config.publicGoodMultiplier,
         investmentUnitCost: config.investmentUnitCost,
         lobbyingCost: config.lobbyingCost,
       },
@@ -471,7 +469,6 @@ export async function seedDemo(
               informalDefaultRisk: config.informalDefaultRisk,
               shockProbability: config.shockProbability,
               safeAssetReturn: config.safeAssetReturn,
-              publicGoodMultiplier: config.publicGoodMultiplier,
               investmentUnitCost: config.investmentUnitCost,
               lobbyingCost: config.lobbyingCost,
               productionA: config.production.A,

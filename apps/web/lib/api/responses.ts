@@ -15,12 +15,14 @@ export class ApiException extends Error {
   readonly status: number;
   readonly code: string;
   readonly details?: unknown;
+  readonly headers?: HeadersInit;
 
-  constructor(status: number, code: string, message: string, details?: unknown) {
+  constructor(status: number, code: string, message: string, details?: unknown, headers?: HeadersInit) {
     super(message);
     this.status = status;
     this.code = code;
     this.details = details;
+    this.headers = headers;
   }
 }
 
@@ -32,15 +34,16 @@ export const apiError = (
   code: string,
   message: string,
   details?: unknown,
+  headers?: HeadersInit,
 ): NextResponse<ApiResponse<never>> =>
-  NextResponse.json({ ok: false, error: { code, message, details } }, { status });
+  NextResponse.json({ ok: false, error: { code, message, details } }, { status, headers });
 
 export const handleApiError = (error: unknown, context?: Record<string, unknown>): NextResponse<ApiResponse<never>> => {
   if (error instanceof ApiException) {
     if (error.status >= 500) {
       console.error("API exception", { code: error.code, message: error.message, context, details: error.details });
     }
-    return apiError(error.status, error.code, error.message, error.details);
+    return apiError(error.status, error.code, error.message, error.details, error.headers);
   }
 
   if (error instanceof ZodError) {

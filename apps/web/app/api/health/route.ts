@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 type HealthResponse = {
   ok: boolean;
   database: "connected" | "disconnected";
+  applicationTable: "Server";
   timestamp: string;
 };
 
@@ -12,11 +13,12 @@ export async function GET() {
   const timestamp = new Date().toISOString();
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma.server.count();
 
     return Response.json({
       ok: true,
       database: "connected",
+      applicationTable: "Server",
       timestamp,
     } satisfies HealthResponse);
   } catch (error) {
@@ -26,6 +28,7 @@ export async function GET() {
       {
         ok: false,
         database: "disconnected",
+        applicationTable: "Server",
         timestamp,
       } satisfies HealthResponse,
       { status: 503 },

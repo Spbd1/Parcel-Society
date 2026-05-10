@@ -150,6 +150,25 @@ describe("engine package", () => {
     expect(high).toBeGreaterThan(low);
   });
 
+  it("records public contributions as treasury inflows without same-round payouts", () => {
+    const players = createInitialPlayers(2, config);
+    const result = resolveRound({
+      server: createInitialServerState(config),
+      players,
+      parcels: [],
+      decisions: [
+        { playerId: "player-1", type: "PUBLIC_CONTRIBUTION", amount: 5 },
+      ],
+      config,
+      seed: "public-contribution-seed",
+    });
+
+    expect(result.server.treasury).toBe(5);
+    expect(result.players.find((player) => player.id === "player-1")?.wealth).toBe(config.startingWealth - 5);
+    expect(result.players.find((player) => player.id === "player-2")?.wealth).toBe(config.startingWealth);
+    expect(result.roundSummary.publicContributions).toBe(5);
+  });
+
   it("resolves a round into a valid state", () => {
     const parcels = [ownedParcel()];
     const players = createInitialPlayers(2, config).map((player, index) => ({

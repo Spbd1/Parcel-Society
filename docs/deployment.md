@@ -69,17 +69,13 @@ openssl rand -base64 32
 
 Use the same PostgreSQL password in `POSTGRES_PASSWORD` and `DATABASE_URL`. The production Compose file keeps PostgreSQL on the private Docker network and binds the web app to `127.0.0.1:3000` for reverse proxying.
 
-## Build and start production containers
+## Build, migrate, seed, and start production containers
 
 ```bash
 make prod-up
 ```
 
-This builds the standalone Next.js image and starts `postgres` and `web` with `restart: unless-stopped`.
-
-## Run migrations
-
-Run database schema deployment after the database is healthy:
+This builds the standalone Next.js image and starts `postgres` and `web` with `restart: unless-stopped`. Run database schema deployment after PostgreSQL is healthy:
 
 ```bash
 make migrate
@@ -87,15 +83,21 @@ make migrate
 
 Production deployments use versioned Prisma migrations via `prisma migrate deploy`; do not use `db push` against production data.
 
-## Create the first admin
+## Create the first admin or demo data
 
-The application authenticates the environment admin with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. To ensure the admin user/profile exists in the database and to create demo servers, run:
+The application authenticates the environment admin with HTTP Basic Auth from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. To ensure the admin user/profile exists in the database, run:
 
 ```bash
 make seed
 ```
 
-You can then open `/admin/login`, enter those credentials, and manage servers. Rotate the password after sharing temporary access.
+For a demo/pilot environment that needs sample servers, use the demo seed instead:
+
+```bash
+pnpm seed:demo
+```
+
+You can then open `/admin`; the browser prompts for Basic Auth before rendering admin pages. Rotate the password after sharing temporary access.
 
 ## Configure Nginx and HTTPS
 
@@ -138,6 +140,7 @@ A healthy response looks like:
 {
   "ok": true,
   "database": "connected",
+  "applicationTable": "Server",
   "timestamp": "2026-05-10T00:00:00.000Z"
 }
 ```

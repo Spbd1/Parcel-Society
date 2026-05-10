@@ -53,15 +53,24 @@ pnpm seed:demo
 pnpm dev
 ```
 
-Open <http://localhost:3000>. The admin area is available at <http://localhost:3000/admin/login>.
+Open <http://localhost:3000> for the participant landing page. Open <http://localhost:3000/admin> for the admin dashboard; the browser will prompt for HTTP Basic Auth using `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `.env`.
 
 ## Docker start
 
-For local Docker development:
+For local Docker development, the default Compose path now builds the app, waits for PostgreSQL, runs Prisma migrations, seeds demo data, and starts the web container:
 
 ```bash
 cp .env.example .env
 docker compose up --build
+```
+
+If you only start PostgreSQL through Docker and run the app on your host, use the explicit local test path:
+
+```bash
+docker compose up -d postgres
+pnpm db:migrate
+pnpm seed:demo
+pnpm dev
 ```
 
 For the production-oriented Compose file:
@@ -114,7 +123,7 @@ Runtime flow:
 
 ## Research design
 
-The current study design uses seven-round seasons, three action points per participant per round, and 10x10 parcel maps. Initial parcel quality operationalizes inequality, while stable versus uncertain institutional conditions affect the reliability and predictability of rules or shocks.
+The current study design uses seven-round seasons, three action points per participant per round, 10x10 parcel maps, and fixed formal/informal contract fees. Initial parcel quality operationalizes inequality, while stable versus uncertain institutional conditions affect the reliability and predictability of rules or shocks.
 
 Confirmatory analysis should be preregistered before real data collection. The included analysis helper is descriptive and intended for pilots, diagnostics, and transparent release artifacts. See:
 
@@ -125,7 +134,7 @@ Confirmatory analysis should be preregistered before real data collection. The i
 
 ## Data exports
 
-Administrators can export research-safe ZIP files:
+Administrators can export research-safe ZIP files. Admin endpoints are protected by Basic Auth and exports omit emails, passwords, IP addresses, tokens, and authentication credentials:
 
 - `GET /api/admin/servers/:serverId/export.zip` for one server.
 - `GET /api/admin/export/all.zip` for all servers.

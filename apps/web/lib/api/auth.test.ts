@@ -44,10 +44,13 @@ describe("admin authorization", () => {
     prismaMock.adminUser.upsert.mockResolvedValue({ id: "admin-profile" });
   });
 
-  it("rejects missing admin credentials", async () => {
+  it("rejects missing admin credentials with a Basic Auth challenge", async () => {
     await expect(requireAdminAuth(new Request("https://example.test/api/admin"))).rejects.toMatchObject({
       status: 401,
       code: "UNAUTHORIZED",
+      headers: {
+        "WWW-Authenticate": 'Basic realm="Parcel Society Admin", charset="UTF-8"',
+      },
     });
   });
 

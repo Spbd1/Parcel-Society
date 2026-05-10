@@ -19,7 +19,6 @@ const config: EngineConfig = {
   startingWealth: 100,
   investmentUnitCost: 10,
   safeAssetReturn: 0.03,
-  publicGoodMultiplier: 1.5,
   lobbyingCost: 5,
 };
 

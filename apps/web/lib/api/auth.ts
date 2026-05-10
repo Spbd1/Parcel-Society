@@ -5,6 +5,10 @@ import { ApiException } from "./responses";
 import { rateLimit } from "./rateLimit";
 
 const PARTICIPANT_COOKIE = "parcel_society_user_id";
+const ADMIN_AUTH_CHALLENGE = {
+  "WWW-Authenticate": 'Basic realm="Parcel Society Admin", charset="UTF-8"',
+  "Cache-Control": "no-store",
+};
 
 const appSecret = (): string => {
   const secret = process.env.APP_SECRET;
@@ -91,11 +95,9 @@ export const requireAdminAuth = async (
   rateLimit({ request, key: "admin-login", limit: 20, windowMs: 60_000 });
   const credentials = parseBasicAuth(request);
   const adminEmail =
-    process.env.ADMIN_EMAIL ??
-    (process.env.NODE_ENV === "production" ? undefined : "admin@example.com");
+    process.env.ADMIN_EMAIL;
   const adminPassword =
-    process.env.ADMIN_PASSWORD ??
-    (process.env.NODE_ENV === "production" ? undefined : "changeme");
+    process.env.ADMIN_PASSWORD;
 
   if (!adminEmail || !adminPassword) {
     throw new ApiException(
@@ -114,6 +116,8 @@ export const requireAdminAuth = async (
       401,
       "UNAUTHORIZED",
       "Admin credentials are required.",
+      undefined,
+      ADMIN_AUTH_CHALLENGE,
     );
   }
 

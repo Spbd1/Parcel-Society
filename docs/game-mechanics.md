@@ -32,7 +32,7 @@ The initial action vocabulary is intentionally constrained:
 - **Produce**: convert current opportunities into output.
 - **Productive investment**: allocate resources toward future production.
 - **Safe asset**: protect resources in a lower-risk option.
-- **Public contribution**: contribute to the shared treasury or public good.
+- **Public contribution**: contribute to the shared treasury. In the MVP this increases the treasury balance only; it does not trigger an automatic same-round payout to players.
 - **Informal contract**: cooperate without formal enforcement.
 - **Formal contract**: cooperate with a stronger institutional backing.
 - **Lobbying**: allocate resources toward rent-seeking or institutional advantage.
@@ -45,13 +45,13 @@ Do not expand this action list without a clear research-design reason.
 1. The server exposes the current round state.
 2. Active players submit decisions subject to action-point and validation rules.
 3. Administrators or automated session control resolve the round.
-4. The engine applies production, investment, contracts, shocks, treasury updates, and scoring.
+4. The engine applies production, investment, contracts, shocks, treasury updates, and scoring. Public contributions are recorded as treasury inflows only.
 5. The app stores player-round state, decisions, contracts, events, and treasury transactions.
 6. Participants see round summaries and continue until the season ends or they exit.
 
 ## Institutions
 
-Stable institutions keep enforcement and shock rules predictable. Uncertain institutions introduce controlled uncertainty while remaining reproducible through explicit configuration and seeds.
+Stable institutions keep enforcement and shock rules predictable. Uncertain institutions introduce controlled uncertainty while remaining reproducible through explicit configuration and seeds. Contract fees are modeled as fixed per-contract fees (`formalFixedFee` and `informalFixedFee` in shared server config), not percentage rates.
 
 ## Design principles
 
