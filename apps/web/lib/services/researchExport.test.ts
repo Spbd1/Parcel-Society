@@ -83,8 +83,18 @@ const serverFixture = () => ({
     mapHeight: 1,
     adminEmail: "researcher@example.org",
     adminPassword: "super-secret",
+    password: "exact-password-value",
+    apiSecret: "api-secret-123",
+    secret: "exact-secret-value",
+    auth: "basic-auth-value",
     allowedIpAddress: "203.0.113.9",
+    ipAddress: "203.0.113.10",
     authToken: "token-123",
+    token: "exact-token-value",
+    description: "Safe config description",
+    publicGoodMultiplier: 1.5,
+    multiplier: 2,
+    participationLabel: "Village cohort",
   },
   createdAt: date,
   updatedAt: date,
@@ -153,7 +163,11 @@ const serverFixture = () => ({
   serverConfigs: [
     {
       key: "runtime",
-      value: { formalFixedFee: 2, password: "hidden", nested: { ip: "198.51.100.4" } },
+      value: {
+        formalFixedFee: 2,
+        password: "hidden",
+        nested: { ip: "198.51.100.4", description: "Nested safe description" },
+      },
       createdAt: date,
       updatedAt: date,
     },
@@ -191,8 +205,29 @@ describe("research export zip", () => {
 
     expect(exportedText).not.toContain("researcher@example.org");
     expect(exportedText).not.toContain("super-secret");
+    expect(exportedText).not.toContain("exact-password-value");
     expect(exportedText).not.toContain("203.0.113.9");
+    expect(exportedText).not.toContain("203.0.113.10");
     expect(exportedText).not.toContain("198.51.100.4");
     expect(exportedText).not.toContain("token-123");
+    expect(exportedText).not.toContain("exact-token-value");
+    expect(exportedText).not.toContain("api-secret-123");
+    expect(exportedText).not.toContain("exact-secret-value");
+    expect(exportedText).not.toContain("basic-auth-value");
+  });
+
+  it("preserves safe config keys that contain sensitive key substrings", async () => {
+    prismaMock.server.findMany.mockResolvedValue([serverFixture()]);
+
+    const zip = await buildResearchExportZip({ type: "server", serverId: "server-1" });
+    const exportedText = Object.values(unzipStoredFiles(zip)).join("\n");
+
+    expect(exportedText).toContain("description");
+    expect(exportedText).toContain("Safe config description");
+    expect(exportedText).toContain("Nested safe description");
+    expect(exportedText).toContain("publicGoodMultiplier");
+    expect(exportedText).toContain("multiplier");
+    expect(exportedText).toContain("participationLabel");
+    expect(exportedText).toContain("Village cohort");
   });
 });

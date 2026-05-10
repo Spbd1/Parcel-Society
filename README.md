@@ -57,14 +57,14 @@ Open <http://localhost:3000> for the participant landing page. Open <http://loca
 
 ## Docker start
 
-For local Docker development, the default Compose path now builds the app, waits for PostgreSQL, runs Prisma migrations, seeds demo data, and starts the web container:
+For local Docker development, the default Compose path now builds the app, waits for PostgreSQL, applies Prisma migrations with `pnpm db:deploy` for the non-interactive Compose environment, seeds demo data, and starts the web container:
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-If you only start PostgreSQL through Docker and run the app on your host, use the explicit local test path:
+If you only start PostgreSQL through Docker and run the app on your host, use the explicit local development path with `pnpm db:migrate`:
 
 ```bash
 docker compose up -d postgres

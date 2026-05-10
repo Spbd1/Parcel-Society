@@ -23,7 +23,34 @@ const jsonObject = (value: Prisma.JsonValue): Record<string, unknown> =>
     : {};
 
 
-const SENSITIVE_CONFIG_KEY_PATTERN = /(email|password|secret|token|credential|authorization|auth|ipAddress|ip_address|ip)/i;
+const SENSITIVE_CONFIG_KEY_TERMS = new Set([
+  "auth",
+  "authorization",
+  "credential",
+  "credentials",
+  "email",
+  "ip",
+  "password",
+  "secret",
+  "token",
+]);
+const SENSITIVE_CONFIG_KEY_ALIASES = new Set(["ipaddress", "ip_address"]);
+
+const configKeyTerms = (key: string): string[] =>
+  key
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .map((term) => term.toLowerCase())
+    .filter(Boolean);
+
+const isSensitiveConfigKey = (key: string): boolean => {
+  const normalizedKey = key.toLowerCase();
+  return (
+    SENSITIVE_CONFIG_KEY_ALIASES.has(normalizedKey) ||
+    configKeyTerms(key).some((term) => SENSITIVE_CONFIG_KEY_TERMS.has(term))
+  );
+};
 
 const sanitizeForExport = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -33,7 +60,7 @@ const sanitizeForExport = (value: unknown): unknown => {
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .filter(([key]) => !SENSITIVE_CONFIG_KEY_PATTERN.test(key))
+        .filter(([key]) => !isSensitiveConfigKey(key))
         .map(([key, entry]) => [key, sanitizeForExport(entry)]),
     );
   }

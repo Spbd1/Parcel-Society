@@ -25,7 +25,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: pnpm db:migrate
+    command: pnpm db:deploy
 
   seed-demo:
     build:
