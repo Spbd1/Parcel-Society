@@ -1,5 +1,5 @@
-import { ActionType, ContractType, prisma, type Prisma } from "@parcel-society/db";
-import { gini } from "@parcel-society/engine";
+import { prisma, type Prisma } from "@parcel-society/db";
+import { calculateServerOutcomes, gini } from "@parcel-society/engine";
 import { ApiException } from "../api/responses";
 import { defaultEngineConfig } from "./game";
 
@@ -174,16 +174,21 @@ const roundOutcomeHeaders = [
   "exit_rate",
   "safe_asset_share",
   "lobbying_share",
-  "treasury",
+  "treasury_balance",
   "active_players",
   "total_output",
+  "final_wealth_gini",
+  "initial_parcel_quality_gini",
+  "formal_contract_share",
+  "average_wealth",
+  "median_wealth",
 ];
 const serverSummaryHeaders = [
   "server_id",
   "inequality_condition",
   "uncertainty_condition",
   "random_seed",
-  "initial_land_gini",
+  "initial_parcel_quality_gini",
   "final_wealth_gini",
   "final_exit_rate",
   "final_contract_reliability",
@@ -323,55 +328,73 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
       description: transaction.description,
     })));
 
-    for (const round of rounds) {
-      const roundDecisions = decisions.filter((decision) => decision.roundNumber === round);
-      const roundContracts = contracts.filter((contract) => contract.roundNumber === round);
-      const roundStates = playerRoundStates.filter((state) => state.roundNumber === round);
-      const spending = roundDecisions
-        .filter((decision) =>
-          [ActionType.PRODUCTIVE_INVESTMENT, ActionType.PUBLIC_CONTRIBUTION, ActionType.SAFE_ASSET, ActionType.LOBBYING].includes(decision.actionType),
-        )
-        .reduce((total, decision) => total + numberValue(decision.amount), 0);
-      const spendByType = (type: ActionType) =>
-        roundDecisions.filter((decision) => decision.actionType === type).reduce((total, decision) => total + numberValue(decision.amount), 0);
-      const contractDecisionCount = roundDecisions.filter(
-        (decision) => decision.actionType === ActionType.INFORMAL_CONTRACT || decision.actionType === ActionType.FORMAL_CONTRACT,
-      ).length;
-      const treasury = treasuryTransactions
-        .filter((transaction) => (transaction.roundNumber ?? 0) <= round)
-        .reduce((total, transaction) => total + numberValue(transaction.amount), 0);
+    const outcomes = calculateServerOutcomes({
+      players: players.map((player) => ({
+        id: player.id,
+        wealth: numberValue(player.wealth),
+        safeAsset: numberValue(player.safeAsset),
+        exited: player.exited,
+        roundExited: player.roundExited,
+      })),
+      parcels: parcels.map((parcel) => ({ quality: numberValue(parcel.quality) })),
+      decisions: decisions.map((decision) => ({
+        round: decision.roundNumber,
+        actionType: decision.actionType,
+        amount: numberValue(decision.amount),
+      })),
+      contracts: contracts.map((contract) => ({
+        round: contract.roundNumber,
+        contractType: contract.contractType,
+        fulfilled: contract.fulfilled,
+        defaulted: contract.defaulted,
+      })),
+      playerRoundStates: playerRoundStates.map((state) => ({
+        playerId: state.playerId,
+        round: state.roundNumber,
+        wealth: numberValue(state.wealth),
+        safeAsset: numberValue(state.safeAsset),
+        exited: state.exited,
+        totalOutput: roundSummaryOutput([state]),
+      })),
+      treasuryTransactions: treasuryTransactions.map((transaction) => ({
+        round: transaction.roundNumber,
+        amount: numberValue(transaction.amount),
+      })),
+      rounds,
+    });
 
-      roundOutcomeRows.push({
-        server_id: server.id,
-        round,
-        informal_cooperation_rate: share(roundContracts.filter((contract) => contract.contractType === ContractType.INFORMAL).length, contractDecisionCount),
-        contract_reliability: resolvedContractReliability(roundContracts),
-        productive_investment_share: share(spendByType(ActionType.PRODUCTIVE_INVESTMENT), spending),
-        public_contribution_share: share(spendByType(ActionType.PUBLIC_CONTRIBUTION), spending),
-        exit_rate: share(roundStates.filter((state) => state.exited).length || players.filter((player) => player.exited && (player.roundExited ?? Infinity) <= round).length, players.length),
-        safe_asset_share: share(spendByType(ActionType.SAFE_ASSET), spending),
-        lobbying_share: share(spendByType(ActionType.LOBBYING), spending),
-        treasury,
-        active_players: roundStates.length > 0 ? roundStates.filter((state) => !state.exited).length : players.filter((player) => !player.exited || (player.roundExited ?? Infinity) > round).length,
-        total_output: roundSummaryOutput(roundStates),
-      });
-    }
+    roundOutcomeRows.push(...outcomes.rounds.map((outcome) => ({
+      server_id: server.id,
+      round: outcome.round,
+      informal_cooperation_rate: outcome.informalCooperationRate,
+      contract_reliability: outcome.contractReliability,
+      productive_investment_share: outcome.productiveInvestmentShare,
+      public_contribution_share: outcome.publicContributionShare,
+      exit_rate: outcome.exitRate,
+      safe_asset_share: outcome.safeAssetShare,
+      lobbying_share: outcome.lobbyingShare,
+      treasury_balance: outcome.treasuryBalance,
+      active_players: outcome.activePlayers,
+      total_output: outcome.totalOutput,
+      final_wealth_gini: outcome.finalWealthGini,
+      initial_parcel_quality_gini: outcome.initialParcelQualityGini,
+      formal_contract_share: outcome.formalContractShare,
+      average_wealth: outcome.averageWealth,
+      median_wealth: outcome.medianWealth,
+    })));
 
-    const finalRound = rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
-    const finalOutcome = finalRound
-      ? [...roundOutcomeRows].reverse().find((row: CsvRow) => row.server_id === server.id && row.round === finalRound)
-      : undefined;
+    const finalOutcome = outcomes.latest;
     serverSummaryRows.push({
       server_id: server.id,
       inequality_condition: server.inequalityCondition,
       uncertainty_condition: server.uncertaintyCondition,
       random_seed: server.randomSeed,
-      initial_land_gini: gini(players.map((player) => numberValue(player.parcel.quality))),
+      initial_parcel_quality_gini: gini(players.map((player) => numberValue(player.parcel.quality))),
       final_wealth_gini: gini(players.map((player) => numberValue(player.wealth) + numberValue(player.safeAsset))),
       final_exit_rate: share(players.filter((player) => player.exited).length, players.length),
-      final_contract_reliability: finalOutcome?.contract_reliability ?? resolvedContractReliability(contracts),
-      final_public_contribution_share: finalOutcome?.public_contribution_share ?? 0,
-      final_productive_investment_share: finalOutcome?.productive_investment_share ?? 0,
+      final_contract_reliability: finalOutcome?.contractReliability ?? resolvedContractReliability(contracts),
+      final_public_contribution_share: finalOutcome?.publicContributionShare ?? 0,
+      final_productive_investment_share: finalOutcome?.productiveInvestmentShare ?? 0,
     });
   }
 

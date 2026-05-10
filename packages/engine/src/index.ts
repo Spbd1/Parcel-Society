@@ -9,6 +9,7 @@ export * from "./shocks";
 export * from "./roundResolver";
 export * from "./serverSimulator";
 export * from "./scoring";
+export * from "./outcomes";
 export * from "./validation";
 
 export const ENGINE_PACKAGE_READY = true;

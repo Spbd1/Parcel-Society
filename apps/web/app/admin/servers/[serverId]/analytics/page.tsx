@@ -1,9 +1,110 @@
 import { notFound } from "next/navigation";
-import { ActionType, ContractType, prisma } from "@parcel-society/db";
 import { BarMetricChart, DistributionChart, LineMetricChart } from "../../../_components/AdminCharts";
-import { AdminPageHeader, Card } from "../../../_components/ui";
-import { numberValue } from "../../../_components/format";
+import { formatMoney, formatNumber, formatPercent } from "../../../_components/format";
+import { AdminPageHeader, Card, ConditionBadge, StatCard } from "../../../_components/ui";
+import { getServerAnalytics } from "../../../../../lib/services/adminAnalytics";
+import { ParcelMap } from "../parcels/ParcelMap";
 import { ServerTabs } from "../ServerTabs";
+
 type Props = { params: Promise<{ serverId: string }> };
-const share = (part: number, total: number) => total ? part / total : 0;
-export default async function AnalyticsPage({ params }: Props) { const { serverId } = await params; const server=await prisma.server.findUnique({ where:{id:serverId}, include:{players:true} }); if(!server) notFound(); const [states, treasury, decisions, contracts] = await Promise.all([prisma.playerRoundState.groupBy({ by:["roundNumber"], where:{serverId}, _avg:{wealth:true, productiveCapital:true, safeAsset:true}, _count:{_all:true} }), prisma.treasuryTransaction.groupBy({ by:["roundNumber"], where:{serverId}, _sum:{amount:true} }), prisma.decision.groupBy({ by:["roundNumber","actionType"], where:{serverId}, _sum:{amount:true}, _count:{_all:true} }), prisma.contract.groupBy({ by:["roundNumber","contractType","fulfilled"], where:{serverId}, _count:{_all:true} })]); const rounds=[...new Set([...states.map(s=>s.roundNumber),...decisions.map(d=>d.roundNumber),...contracts.map(c=>c.roundNumber)])].sort((a,b)=>a-b); const byAction=(r:number,a:ActionType)=>decisions.find(d=>d.roundNumber===r&&d.actionType===a); const actionTotal=(r:number)=>decisions.filter(d=>d.roundNumber===r).reduce((t,d)=>t+d._count._all,0); const chart=rounds.map(round=>{ const total=actionTotal(round); const formal=contracts.filter(c=>c.roundNumber===round&&c.contractType===ContractType.FORMAL).reduce((t,c)=>t+c._count._all,0); const informal=contracts.filter(c=>c.roundNumber===round&&c.contractType===ContractType.INFORMAL).reduce((t,c)=>t+c._count._all,0); const fulfilled=contracts.filter(c=>c.roundNumber===round&&c.fulfilled).reduce((t,c)=>t+c._count._all,0); const state=states.find(s=>s.roundNumber===round)?._avg; return { round, wealth:numberValue(state?.wealth), treasury:numberValue(treasury.find(t=>t.roundNumber===round)?._sum.amount), productiveInvestmentShare:share(byAction(round,ActionType.PRODUCTIVE_INVESTMENT)?._count._all??0,total), publicContributionShare:share(byAction(round,ActionType.PUBLIC_CONTRIBUTION)?._count._all??0,total), formalContracts:formal, informalContracts:informal, exitCount:byAction(round,ActionType.EXIT)?._count._all??0, lobbyingShare:share(byAction(round,ActionType.LOBBYING)?._count._all??0,total), contractReliability:share(fulfilled, formal+informal) }; }); const wealthBins=Array.from({length:8},(_,i)=>({name:`${i*50}-${(i+1)*50}`, value:server.players.filter(p=>numberValue(p.wealth)>=i*50&&numberValue(p.wealth)<(i+1)*50).length})); return <><AdminPageHeader title={`${server.name}: analytics`} description="Round-level charts for wealth, treasury, decisions, contracts, exits, reliability, and final distribution." /><ServerTabs serverId={serverId} /><div className="grid gap-6 xl:grid-cols-2"><Card><h2 className="mb-4 text-lg font-semibold">Wealth over rounds</h2><LineMetricChart data={chart} lines={["wealth"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Treasury over rounds</h2><LineMetricChart data={chart} lines={["treasury"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Productive investment share</h2><LineMetricChart data={chart} lines={["productiveInvestmentShare"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Public contribution share</h2><LineMetricChart data={chart} lines={["publicContributionShare"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Informal vs formal contracts</h2><BarMetricChart data={chart} bars={["informalContracts","formalContracts"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Exit count by round</h2><BarMetricChart data={chart} bars={["exitCount"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Lobbying share</h2><LineMetricChart data={chart} lines={["lobbyingShare"]} /></Card><Card><h2 className="mb-4 text-lg font-semibold">Contract reliability</h2><LineMetricChart data={chart} lines={["contractReliability"]} /></Card><Card className="xl:col-span-2"><h2 className="mb-4 text-lg font-semibold">Final wealth distribution</h2><DistributionChart data={wealthBins} /></Card></div></>; }
+
+const wealthHistogram = (wealthValues: number[]) => {
+  if (wealthValues.length === 0) return [];
+  const minimum = Math.min(...wealthValues);
+  const maximum = Math.max(...wealthValues);
+  const binCount = 8;
+  const width = Math.max((maximum - minimum) / binCount, 1);
+  return Array.from({ length: binCount }, (_, index) => {
+    const start = minimum + index * width;
+    const end = index === binCount - 1 ? maximum : start + width;
+    return {
+      name: `${formatNumber(start)}–${formatNumber(end)}`,
+      value: wealthValues.filter((value) => value >= start && (index === binCount - 1 ? value <= end : value < end)).length,
+    };
+  });
+};
+
+export default async function AnalyticsPage({ params }: Props) {
+  const { serverId } = await params;
+  let analytics: Awaited<ReturnType<typeof getServerAnalytics>>;
+  try {
+    analytics = await getServerAnalytics(serverId);
+  } catch {
+    notFound();
+  }
+
+  const { server, rounds, latest, players, parcels } = analytics;
+  const chartData = rounds.map((round) => ({
+    round: round.round,
+    productiveInvestmentShare: round.productiveInvestmentShare,
+    publicContributionShare: round.publicContributionShare,
+    informalCooperationRate: round.informalCooperationRate,
+    contractReliability: round.contractReliability,
+    exitRate: round.exitRate,
+    formalContracts: round.formalContractsStarted,
+    informalContracts: round.informalContractsStarted,
+  }));
+  const histogram = wealthHistogram(players.map((player) => player.finalWealth));
+
+  return (
+    <>
+      <AdminPageHeader
+        title={`${server.name}: analytics`}
+        description="Treatment-aware round outcomes, contract mix, wealth distribution, and parcel quality diagnostics."
+        actions={<><ConditionBadge value={server.inequalityCondition} /><ConditionBadge value={server.uncertaintyCondition} /></>}
+      />
+      <ServerTabs serverId={serverId} />
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard label="Current round" value={server.currentRound} hint={`${server.seasonLength} scheduled rounds`} />
+        <StatCard label="Productive investment" value={formatPercent(latest?.productiveInvestmentShare ?? 0)} hint="Latest round share" />
+        <StatCard label="Public contribution" value={formatPercent(latest?.publicContributionShare ?? 0)} hint="Latest round share" />
+        <StatCard label="Informal cooperation" value={formatPercent(latest?.informalCooperationRate ?? 0)} hint="Informal / all contracts" />
+        <StatCard label="Contract reliability" value={formatPercent(latest?.contractReliability ?? 0)} hint="Fulfilled / resolved" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card><h2 className="mb-4 text-lg font-semibold">Productive investment share over rounds</h2><LineMetricChart data={chartData} lines={["productiveInvestmentShare"]} /></Card>
+        <Card><h2 className="mb-4 text-lg font-semibold">Public contribution share over rounds</h2><LineMetricChart data={chartData} lines={["publicContributionShare"]} /></Card>
+        <Card><h2 className="mb-4 text-lg font-semibold">Informal cooperation rate over rounds</h2><LineMetricChart data={chartData} lines={["informalCooperationRate"]} /></Card>
+        <Card><h2 className="mb-4 text-lg font-semibold">Contract reliability over rounds</h2><LineMetricChart data={chartData} lines={["contractReliability"]} /></Card>
+        <Card><h2 className="mb-4 text-lg font-semibold">Exit rate over rounds</h2><LineMetricChart data={chartData} lines={["exitRate"]} /></Card>
+        <Card><h2 className="mb-4 text-lg font-semibold">Formal vs informal contracts</h2><BarMetricChart data={chartData} bars={["formalContracts", "informalContracts"]} /></Card>
+        <Card className="xl:col-span-2"><h2 className="mb-4 text-lg font-semibold">Final wealth distribution</h2><DistributionChart data={histogram} /></Card>
+        <Card className="xl:col-span-2"><h2 className="mb-4 text-lg font-semibold">Parcel quality map</h2><ParcelMap parcels={parcels} /></Card>
+        <Card className="xl:col-span-2">
+          <h2 className="mb-4 text-lg font-semibold">Round outcomes</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                  {["Round", "Prod. invest", "Public", "Informal", "Reliability", "Exit", "Safe", "Lobbying", "Output", "Treasury", "Active", "Wealth Gini", "Parcel Gini", "Formal share", "Avg wealth", "Median wealth"].map((header) => <th className="px-3 py-2" key={header}>{header}</th>)}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {rounds.map((round) => (
+                  <tr key={round.round} className="hover:bg-slate-50">
+                    <td className="px-3 py-2 font-medium text-slate-950">{round.round}</td>
+                    <td className="px-3 py-2">{formatPercent(round.productiveInvestmentShare)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.publicContributionShare)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.informalCooperationRate)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.contractReliability)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.exitRate)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.safeAssetShare)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.lobbyingShare)}</td>
+                    <td className="px-3 py-2">{formatNumber(round.totalOutput, 2)}</td>
+                    <td className="px-3 py-2">{formatMoney(round.treasuryBalance)}</td>
+                    <td className="px-3 py-2">{round.activePlayers}</td>
+                    <td className="px-3 py-2">{formatNumber(round.finalWealthGini, 3)}</td>
+                    <td className="px-3 py-2">{formatNumber(round.initialParcelQualityGini, 3)}</td>
+                    <td className="px-3 py-2">{formatPercent(round.formalContractShare)}</td>
+                    <td className="px-3 py-2">{formatMoney(round.averageWealth)}</td>
+                    <td className="px-3 py-2">{formatMoney(round.medianWealth)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    </>
+  );
+}
