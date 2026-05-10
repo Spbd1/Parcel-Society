@@ -52,8 +52,8 @@ export const serverConfigSchema = z
       .strict(),
     contracts: z
       .object({
-        formalFeeRate: probability,
-        informalFeeRate: probability,
+        formalFixedFee: finiteNonnegative,
+        informalFixedFee: finiteNonnegative,
         formalDefaultRisk: probability,
         informalDefaultRisk: probability,
       })
@@ -121,8 +121,8 @@ export function serverConfigToEngineOverrides(config: ServerConfig) {
     productionBetaQ: config.economy.production.betaQ,
     productionBetaK: config.economy.production.betaK,
     taxRate: config.economy.taxRate,
-    formalContractFee: config.contracts.formalFeeRate,
-    informalContractFee: config.contracts.informalFeeRate,
+    formalContractFee: config.contracts.formalFixedFee,
+    informalContractFee: config.contracts.informalFixedFee,
     formalDefaultRisk: config.contracts.formalDefaultRisk,
     informalDefaultRisk: config.contracts.informalDefaultRisk,
     shockProbability: config.shocks.baseProbability,

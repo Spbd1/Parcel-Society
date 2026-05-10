@@ -97,7 +97,6 @@ export const defaultEngineConfig = (server: {
     startingWealth: Number(overrides.startingWealth ?? 100),
     investmentUnitCost: Number(overrides.investmentUnitCost ?? 10),
     safeAssetReturn: Number(overrides.safeAssetReturn ?? 0.03),
-    publicGoodMultiplier: Number(overrides.publicGoodMultiplier ?? 1.5),
     lobbyingCost: Number(overrides.lobbyingCost ?? 5),
     uncertaintyRuleChangeRounds: Array.isArray(overrides.uncertaintyRuleChangeRounds)
       ? overrides.uncertaintyRuleChangeRounds.map(Number).filter(Number.isFinite)

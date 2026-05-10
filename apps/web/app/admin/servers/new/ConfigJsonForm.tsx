@@ -19,8 +19,8 @@ const exampleConfig = `{
     "productiveInvestmentDepreciation": 0.0
   },
   "contracts": {
-    "formalFeeRate": 0.08,
-    "informalFeeRate": 0.02,
+    "formalFixedFee": 2,
+    "informalFixedFee": 0.5,
     "formalDefaultRisk": 0.02,
     "informalDefaultRisk": 0.15
   },

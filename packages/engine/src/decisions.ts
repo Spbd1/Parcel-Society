@@ -139,15 +139,6 @@ export const applyValidDecisions = ({
     }
   }
 
-  if (publicContributions > 0) {
-    const activePlayers = updatedPlayers.filter((player) => !player.exited);
-    const publicGoodPayout =
-      (publicContributions * config.publicGoodMultiplier) /
-      activePlayers.length;
-    for (const player of activePlayers) {
-      player.wealth += publicGoodPayout;
-    }
-  }
 
   return {
     players: updatedPlayers,

@@ -36,7 +36,6 @@ export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   startingWealth: 100,
   investmentUnitCost: 10,
   safeAssetReturn: 0.02,
-  publicGoodMultiplier: 1.4,
   lobbyingCost: 5,
   uncertaintyRuleChangeRounds: DEFAULT_RULE_CHANGE_ROUNDS,
   uncertaintyPossibleEvents: DEFAULT_RULE_CHANGE_EVENTS,

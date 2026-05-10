@@ -22,6 +22,25 @@ const jsonObject = (value: Prisma.JsonValue): Record<string, unknown> =>
     ? (value as Record<string, unknown>)
     : {};
 
+
+const SENSITIVE_CONFIG_KEY_PATTERN = /(email|password|secret|token|credential|authorization|auth|ipAddress|ip_address|ip)/i;
+
+const sanitizeForExport = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeForExport);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([key]) => !SENSITIVE_CONFIG_KEY_PATTERN.test(key))
+        .map(([key, entry]) => [key, sanitizeForExport(entry)]),
+    );
+  }
+
+  return value;
+};
+
 const csvEscape = (value: unknown): string => {
   if (value === null || value === undefined) return "";
   const text = value instanceof Date ? value.toISOString() : typeof value === "object" ? JSON.stringify(value) : String(value);
@@ -268,7 +287,7 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
       uncertainty_condition: server.uncertaintyCondition,
       random_seed: server.randomSeed,
       config_key: "engineOverrides",
-      config_json: server.config,
+      config_json: sanitizeForExport(server.config),
       created_at: server.createdAt,
       updated_at: server.updatedAt,
     });
@@ -278,7 +297,7 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
       uncertainty_condition: server.uncertaintyCondition,
       random_seed: server.randomSeed,
       config_key: configEntry.key,
-      config_json: configEntry.value,
+      config_json: sanitizeForExport(configEntry.value),
       created_at: configEntry.createdAt,
       updated_at: configEntry.updatedAt,
     })));
