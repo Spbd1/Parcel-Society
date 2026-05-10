@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { InequalityCondition, prisma, ServerStatus, UncertaintyCondition } from "@parcel-society/db";
+import { loadServerConfigJson, serverConfigToEngineOverrides } from "@parcel-society/shared";
 import { createServerMap } from "../../../../lib/services/game";
 
 const num = (formData: FormData, key: string, fallback = 0) => Number(formData.get(key) || fallback);
@@ -30,5 +31,35 @@ export async function createServer(formData: FormData) {
     },
   });
   if (generateMap) await createServerMap({ serverId: server.id, width: 10, height: 10 });
+  redirect(`/admin/servers/${server.id}`);
+}
+
+export async function createServerFromConfig(formData: FormData) {
+  const config = loadServerConfigJson(String(formData.get("configJson") || ""));
+  const engineOverrides = serverConfigToEngineOverrides(config);
+  const generateMap = formData.get("intent") === "generate";
+  const server = await prisma.server.create({
+    data: {
+      name: config.name,
+      description: config.description,
+      maxPlayers: Math.min(20, config.map.width * config.map.height),
+      seasonLength: config.season.rounds,
+      inequalityCondition: config.treatment.inequalityCondition,
+      uncertaintyCondition: config.treatment.uncertaintyCondition,
+      randomSeed: config.randomSeed,
+      treasury: config.economy.initialTreasury,
+      config: engineOverrides,
+      status: ServerStatus.DRAFT,
+      serverConfigs: {
+        create: {
+          key: "sourceConfig",
+          value: config,
+        },
+      },
+    },
+  });
+  if (generateMap) {
+    await createServerMap({ serverId: server.id, width: config.map.width, height: config.map.height });
+  }
   redirect(`/admin/servers/${server.id}`);
 }

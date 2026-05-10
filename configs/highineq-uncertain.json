@@ -1,0 +1,55 @@
+{
+  "name": "High inequality / uncertain rules",
+  "description": "High-inequality treatment with scheduled uncertainty over rule changes and reproducible parameters.",
+  "map": {
+    "width": 10,
+    "height": 10
+  },
+  "season": {
+    "rounds": 7,
+    "actionPointsPerRound": 3
+  },
+  "treatment": {
+    "inequalityCondition": "HIGH",
+    "uncertaintyCondition": "UNCERTAIN"
+  },
+  "economy": {
+    "initialWealth": 100,
+    "initialTreasury": 500,
+    "taxRate": 0.05,
+    "production": {
+      "A": 10,
+      "betaQ": 0.8,
+      "betaK": 0.5
+    },
+    "safeAssetReturn": 0.02,
+    "productiveInvestmentDepreciation": 0.0
+  },
+  "contracts": {
+    "formalFeeRate": 0.08,
+    "informalFeeRate": 0.02,
+    "formalDefaultRisk": 0.02,
+    "informalDefaultRisk": 0.15
+  },
+  "lobbying": {
+    "privateReturnMultiplier": 1.15,
+    "socialEfficiencyCost": 0.1
+  },
+  "uncertainty": {
+    "ruleChangeRounds": [
+      3,
+      5
+    ],
+    "possibleEvents": [
+      "TAX_CHANGE",
+      "FORMAL_CONTRACT_FEE_CHANGE",
+      "SHOCK_PROBABILITY_CHANGE"
+    ]
+  },
+  "shocks": {
+    "baseProbability": 0.15,
+    "minMultiplier": 0.5,
+    "maxMultiplier": 1.0
+  },
+  "randomSeed": "parcel-society-highineq-uncertain-v1"
+}
