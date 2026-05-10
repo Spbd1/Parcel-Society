@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { prisma, UserRole } from "@parcel-society/db";
 import { ApiException } from "./responses";
+import { rateLimit } from "./rateLimit";
 
 const PARTICIPANT_COOKIE = "parcel_society_user_id";
 
@@ -51,6 +52,7 @@ const parseBasicAuth = (request: Request): { email: string; password: string } |
 };
 
 export const requireAdminAuth = async (request: Request): Promise<AuthContext> => {
+  rateLimit({ request, key: "admin-login", limit: 20, windowMs: 60_000 });
   const credentials = parseBasicAuth(request);
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -83,6 +85,14 @@ export const requireAdminAuth = async (request: Request): Promise<AuthContext> =
   });
 
   return { user };
+};
+
+export const requireSuperAdminAuth = async (request: Request): Promise<AuthContext> => {
+  const auth = await requireAdminAuth(request);
+  if (auth.user.role !== UserRole.SUPER_ADMIN) {
+    throw new ApiException(403, "SUPER_ADMIN_REQUIRED", "Super admin privileges are required.");
+  }
+  return auth;
 };
 
 export const assertParticipantOnServer = async (userId: string, serverId: string) => {

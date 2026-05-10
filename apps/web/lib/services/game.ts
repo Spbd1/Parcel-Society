@@ -123,7 +123,7 @@ export const joinWaitingServer = async ({
 
     const existing = server.players.find((player) => player.userId === userId);
     if (existing) {
-      return existing;
+      throw new ApiException(409, "PLAYER_ALREADY_JOINED", "You have already joined this server.");
     }
     if (server.players.length >= server.maxPlayers) {
       throw new ApiException(409, "SERVER_FULL", "Server is already full.");
@@ -268,10 +268,21 @@ export const submitPlayerDecisions = async ({
     throw new ApiException(403, "FORBIDDEN", "You are not a participant on this server.");
   }
 
+  if (player.exited) {
+    throw new ApiException(409, "PLAYER_EXITED", "Exited players cannot submit decisions.");
+  }
+
   const activeRound = server.rounds[0];
   const existingDecisions = await prisma.decision.findMany({
     where: { serverId, roundNumber: activeRound.roundNumber },
   });
+  if (existingDecisions.some((decision) => decision.playerId === player.id && decision.actionType === ActionType.EXIT)) {
+    throw new ApiException(409, "PLAYER_EXITED", "Exited players cannot submit more decisions.");
+  }
+  const exitIndex = decisions.findIndex((decision) => decision.type === ActionType.EXIT);
+  if (exitIndex !== -1 && exitIndex !== decisions.length - 1) {
+    throw new ApiException(400, "INVALID_DECISIONS", "Exit must be the final action in a submission.");
+  }
   const config = defaultEngineConfig(server);
   const candidateDecisions: EngineDecision[] = [
     ...existingDecisions.map(engineDecision),

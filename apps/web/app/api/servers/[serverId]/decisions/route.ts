@@ -3,9 +3,11 @@ import { applyAuthCookie, getParticipantAuth } from "../../../../../lib/api/auth
 import { apiOk, handleApiError } from "../../../../../lib/api/responses";
 import { serverIdParamsSchema, submitDecisionsSchema } from "../../../../../lib/api/schemas";
 import { submitPlayerDecisions } from "../../../../../lib/services/game";
+import { rateLimit } from "../../../../../lib/api/rateLimit";
 
 export async function POST(request: Request, context: { params: Promise<{ serverId: string }> }) {
   try {
+    rateLimit({ request, key: "decision-submission", limit: 30, windowMs: 60_000 });
     const { serverId } = serverIdParamsSchema.parse(await context.params);
     const auth = await getParticipantAuth();
     const body = submitDecisionsSchema.parse(await request.json());

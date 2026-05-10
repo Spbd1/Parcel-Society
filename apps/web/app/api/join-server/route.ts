@@ -3,9 +3,11 @@ import { joinServerSchema } from "../../../lib/api/schemas";
 import { ApiException, apiOk, handleApiError } from "../../../lib/api/responses";
 import { applyAuthCookie, getParticipantAuth } from "../../../lib/api/auth";
 import { joinWaitingServer } from "../../../lib/services/game";
+import { rateLimit } from "../../../lib/api/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    rateLimit({ request, key: "join-server", limit: 10, windowMs: 60_000 });
     const auth = await getParticipantAuth();
     const body = joinServerSchema.parse(await request.json());
     const passedCheck = await prisma.comprehensionCheck.findFirst({

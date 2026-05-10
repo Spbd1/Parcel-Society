@@ -2,6 +2,8 @@ import { prisma } from "@parcel-society/db";
 import { requireAdminAuth } from "../../../../../../lib/api/auth";
 import { handleApiError } from "../../../../../../lib/api/responses";
 import { serverIdParamsSchema } from "../../../../../../lib/api/schemas";
+import { rateLimit } from "../../../../../../lib/api/rateLimit";
+import { recordAdminAction } from "../../../../../../lib/api/audit";
 
 const csvEscape = (value: unknown): string => {
   if (value === null || value === undefined) return "";
@@ -23,7 +25,8 @@ const tableToCsv = (rows: object[]): string => {
 
 export async function GET(request: Request, context: { params: Promise<{ serverId: string }> }) {
   try {
-    await requireAdminAuth(request);
+    rateLimit({ request, key: "server-export", limit: 12, windowMs: 60_000 });
+    const auth = await requireAdminAuth(request);
     const { serverId } = serverIdParamsSchema.parse(await context.params);
     const [players, parcels, decisions, contracts, serverEvents, treasuryTransactions, roundOutcomes] = await Promise.all([
       prisma.player.findMany({ where: { serverId }, orderBy: { createdAt: "asc" } }),
@@ -45,8 +48,9 @@ export async function GET(request: Request, context: { params: Promise<{ serverI
       round_outcomes: tableToCsv(roundOutcomes),
     };
 
+    await recordAdminAction({ auth, action: "EXPORT_DATA", entityType: "server", entityId: serverId, after: { format: "json-csv", files: Object.keys(files) } });
     return Response.json({ ok: true, data: { files } });
   } catch (error) {
-    return handleApiError(error);
+    return handleApiError(error, { route: "GET /api/admin/servers/[serverId]/export" });
   }
 }

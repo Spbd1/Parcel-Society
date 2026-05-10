@@ -7,11 +7,14 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
+COPY packages/db/package.json packages/db/package.json
+COPY packages/engine/package.json packages/engine/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile=false
 
 FROM deps AS builder
 COPY . .
+RUN pnpm --filter @parcel-society/db db:generate
 RUN pnpm --filter @parcel-society/web build
 
 FROM node:22-alpine AS runner
