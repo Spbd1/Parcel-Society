@@ -9,8 +9,9 @@ type DecimalValue = number | string | { toString(): string };
 type Player = { wealth: DecimalValue; productiveCapital: DecimalValue; safeAsset: DecimalValue; exited: boolean };
 type Decision = { actionType: string; amount: DecimalValue };
 type Contract = { fulfilled: boolean | null; defaulted: boolean | null };
-type Server = { status: string; treasury: DecimalValue; players: Array<{ exited: boolean; wealth: DecimalValue }> };
-type FinalResponse = { server: Server | null; player: Player; decisions: Decision[]; contracts: Contract[] };
+type Server = { status: string; treasury: DecimalValue };
+type ServerOutcomes = { participantCount: number; exitedCount: number; averageWealth: DecimalValue };
+type FinalResponse = { server: Server | null; player: Player; decisions: Decision[]; contracts: Contract[]; serverOutcomes: ServerOutcomes };
 
 const money = (value: DecimalValue | undefined) => Number(value ?? 0).toFixed(2);
 
@@ -36,8 +37,8 @@ export default function FinalPage() {
       investments: decisions.filter((decision) => decision.actionType === "PRODUCTIVE_INVESTMENT").reduce((sum, decision) => sum + Number(decision.amount), 0),
       reliability: resolved === 0 ? "No resolved contracts" : `${Math.round((fulfilled / resolved) * 100)}% fulfilled`,
       exited: data?.player.exited || decisions.some((decision) => decision.actionType === "EXIT"),
-      averageWealth: data?.server?.players.length ? data.server.players.reduce((sum, player) => sum + Number(player.wealth), 0) / data.server.players.length : 0,
-      exits: data?.server?.players.filter((player) => player.exited).length ?? 0,
+      averageWealth: Number(data?.serverOutcomes.averageWealth ?? 0),
+      exits: data?.serverOutcomes.exitedCount ?? 0,
     };
   }, [data]);
 
@@ -65,7 +66,7 @@ export default function FinalPage() {
         <h2 className="font-semibold text-slate-950">Server-level outcomes</h2>
         <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
           <div className="rounded-lg bg-slate-50 p-3"><dt className="text-slate-500">Server status</dt><dd className="font-semibold text-slate-900">{data?.server?.status ?? "Unknown"}</dd></div>
-          <div className="rounded-lg bg-slate-50 p-3"><dt className="text-slate-500">Participants</dt><dd className="font-semibold text-slate-900">{data?.server?.players.length ?? 0}</dd></div>
+          <div className="rounded-lg bg-slate-50 p-3"><dt className="text-slate-500">Participants</dt><dd className="font-semibold text-slate-900">{data?.serverOutcomes.participantCount ?? 0}</dd></div>
           <div className="rounded-lg bg-slate-50 p-3"><dt className="text-slate-500">Exited participants</dt><dd className="font-semibold text-slate-900">{totals.exits}</dd></div>
         </dl>
       </article>

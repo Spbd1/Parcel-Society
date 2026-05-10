@@ -24,6 +24,7 @@ export const resolveRound = ({
     server: { ...server },
     seed,
     round,
+    config,
   });
   const workingServer = ruleChange.server;
   const validation = validateDecisions({

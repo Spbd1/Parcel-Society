@@ -12,6 +12,13 @@ import type {
   ServerState,
 } from "./types";
 
+const DEFAULT_RULE_CHANGE_ROUNDS: readonly number[] = [3, 5];
+const DEFAULT_RULE_CHANGE_EVENTS: readonly RuleChangeEventType[] = [
+  "TAX_CHANGE",
+  "FORMAL_CONTRACT_FEE_CHANGE",
+  "SHOCK_PROBABILITY_CHANGE",
+];
+
 export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   seed: "parcel-society",
   inequality: "LOW",
@@ -31,6 +38,8 @@ export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   safeAssetReturn: 0.02,
   publicGoodMultiplier: 1.4,
   lobbyingCost: 5,
+  uncertaintyRuleChangeRounds: DEFAULT_RULE_CHANGE_ROUNDS,
+  uncertaintyPossibleEvents: DEFAULT_RULE_CHANGE_EVENTS,
 };
 
 export const createInitialServerState = (
@@ -67,21 +76,28 @@ export const applyRuleChangeIfNeeded = ({
   server,
   seed,
   round,
+  config,
 }: {
   server: ServerState;
   seed: string | number;
   round: number;
+  config?: Pick<EngineConfig, "uncertaintyRuleChangeRounds" | "uncertaintyPossibleEvents">;
 }): { server: ServerState; events: ServerEvent[] } => {
-  if (server.uncertainty !== "UNCERTAIN" || (round !== 3 && round !== 5)) {
+  const ruleChangeRounds = config?.uncertaintyRuleChangeRounds ?? DEFAULT_RULE_CHANGE_ROUNDS;
+  const possibleEvents = config?.uncertaintyPossibleEvents?.length
+    ? config.uncertaintyPossibleEvents
+    : DEFAULT_RULE_CHANGE_EVENTS;
+
+  if (
+    server.uncertainty !== "UNCERTAIN" ||
+    !ruleChangeRounds.includes(round) ||
+    possibleEvents.length === 0
+  ) {
     return { server, events: [] };
   }
 
   const random = createRandom(`${seed}:rule-change:${round}`);
-  const eventType = random.pick<RuleChangeEventType>([
-    "TAX_CHANGE",
-    "FORMAL_CONTRACT_FEE_CHANGE",
-    "SHOCK_PROBABILITY_CHANGE",
-  ]);
+  const eventType = random.pick<RuleChangeEventType>(possibleEvents);
   const nextServer = { ...server, events: [...server.events] };
   const direction = random.boolean(0.5) ? 1 : -1;
   const event: ServerEvent = {

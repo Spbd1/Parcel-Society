@@ -85,7 +85,7 @@ Run database schema deployment after the database is healthy:
 make migrate
 ```
 
-The current deployment command uses Prisma `db push` because this repository does not yet include migration files. If versioned Prisma migrations are added later, change `packages/db/package.json` to use `prisma migrate deploy` for `db:deploy`.
+Production deployments use versioned Prisma migrations via `prisma migrate deploy`; do not use `db push` against production data.
 
 ## Create the first admin
 

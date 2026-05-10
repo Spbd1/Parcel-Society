@@ -183,6 +183,16 @@ const roundOutcomeHeaders = [
   "average_wealth",
   "median_wealth",
 ];
+const serverConfigHeaders = [
+  "server_id",
+  "inequality_condition",
+  "uncertainty_condition",
+  "random_seed",
+  "config_key",
+  "config_json",
+  "created_at",
+  "updated_at",
+];
 const serverSummaryHeaders = [
   "server_id",
   "inequality_condition",
@@ -225,6 +235,7 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
       events: { orderBy: [{ serverId: "asc" }, { roundNumber: "asc" }, { createdAt: "asc" }] },
       treasuryTransactions: { orderBy: [{ serverId: "asc" }, { roundNumber: "asc" }, { createdAt: "asc" }] },
       playerRoundStates: { orderBy: [{ serverId: "asc" }, { roundNumber: "asc" }, { playerId: "asc" }] },
+      serverConfigs: { orderBy: [{ key: "asc" }, { createdAt: "asc" }] },
     },
   });
 
@@ -240,6 +251,7 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
   const transactionRows: CsvRow[] = [];
   const roundOutcomeRows: CsvRow[] = [];
   const serverSummaryRows: CsvRow[] = [];
+  const serverConfigRows: CsvRow[] = [];
 
   for (const server of servers) {
     const config = defaultEngineConfig(server);
@@ -250,6 +262,26 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
     const events = server.events;
     const treasuryTransactions = server.treasuryTransactions;
     const playerRoundStates = server.playerRoundStates;
+    serverConfigRows.push({
+      server_id: server.id,
+      inequality_condition: server.inequalityCondition,
+      uncertainty_condition: server.uncertaintyCondition,
+      random_seed: server.randomSeed,
+      config_key: "engineOverrides",
+      config_json: server.config,
+      created_at: server.createdAt,
+      updated_at: server.updatedAt,
+    });
+    serverConfigRows.push(...server.serverConfigs.map((configEntry) => ({
+      server_id: server.id,
+      inequality_condition: server.inequalityCondition,
+      uncertainty_condition: server.uncertaintyCondition,
+      random_seed: server.randomSeed,
+      config_key: configEntry.key,
+      config_json: configEntry.value,
+      created_at: configEntry.createdAt,
+      updated_at: configEntry.updatedAt,
+    })));
     const rounds = [...new Set([
       ...decisions.map((decision) => decision.roundNumber),
       ...contracts.map((contract) => contract.roundNumber),
@@ -407,5 +439,6 @@ export const buildResearchExportZip = async (scope: ExportScope): Promise<Uint8A
     "treasury_transactions.csv": tableToCsv(transactionHeaders, transactionRows),
     "round_outcomes.csv": tableToCsv(roundOutcomeHeaders, roundOutcomeRows),
     "server_summary.csv": tableToCsv(serverSummaryHeaders, serverSummaryRows),
+    "server_configs.csv": tableToCsv(serverConfigHeaders, serverConfigRows),
   });
 };

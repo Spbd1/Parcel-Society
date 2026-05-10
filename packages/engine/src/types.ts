@@ -35,6 +35,8 @@ export interface EngineConfig {
   safeAssetReturn: number;
   publicGoodMultiplier: number;
   lobbyingCost: number;
+  uncertaintyRuleChangeRounds?: readonly number[];
+  uncertaintyPossibleEvents?: readonly RuleChangeEventType[];
 }
 
 export interface ProductionConfig {

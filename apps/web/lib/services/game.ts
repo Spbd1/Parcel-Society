@@ -12,6 +12,7 @@ import {
   type Prisma,
 } from "@parcel-society/db";
 import {
+  createRandom,
   decisionCost,
   generateMap,
   resolveRound,
@@ -98,6 +99,16 @@ export const defaultEngineConfig = (server: {
     safeAssetReturn: Number(overrides.safeAssetReturn ?? 0.03),
     publicGoodMultiplier: Number(overrides.publicGoodMultiplier ?? 1.5),
     lobbyingCost: Number(overrides.lobbyingCost ?? 5),
+    uncertaintyRuleChangeRounds: Array.isArray(overrides.uncertaintyRuleChangeRounds)
+      ? overrides.uncertaintyRuleChangeRounds.map(Number).filter(Number.isFinite)
+      : undefined,
+    uncertaintyPossibleEvents: Array.isArray(overrides.uncertaintyPossibleEvents)
+      ? overrides.uncertaintyPossibleEvents.filter((event): event is "TAX_CHANGE" | "FORMAL_CONTRACT_FEE_CHANGE" | "SHOCK_PROBABILITY_CHANGE" =>
+          event === "TAX_CHANGE" ||
+          event === "FORMAL_CONTRACT_FEE_CHANGE" ||
+          event === "SHOCK_PROBABILITY_CHANGE",
+        )
+      : undefined,
   };
 };
 
@@ -137,7 +148,10 @@ export const joinWaitingServer = async ({
       throw new ApiException(409, "NO_AVAILABLE_PARCELS", "No parcels are available.");
     }
 
-    const parcel = availableParcels[Math.floor(Math.random() * availableParcels.length)];
+    const orderedAvailableParcels = [...availableParcels].sort(
+      (left, right) => left.y - right.y || left.x - right.x || left.id.localeCompare(right.id),
+    );
+    const parcel = createRandom(`${server.randomSeed}:join:${server.players.length}`).pick(orderedAvailableParcels);
     const config = defaultEngineConfig(server);
     const player = await tx.player.create({
       data: {
