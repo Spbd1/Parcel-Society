@@ -29,9 +29,9 @@ Secondary outcomes are diagnostic and mechanism-oriented measures:
 
 Parcel Society uses a 2×2 treatment structure:
 
-| Factor | Low / stable condition | High / uncertain condition |
-|---|---|---|
-| Initial inequality | Low parcel-quality inequality | High parcel-quality inequality |
+| Factor                    | Low / stable condition             | High / uncertain condition               |
+| ------------------------- | ---------------------------------- | ---------------------------------------- |
+| Initial inequality        | Low parcel-quality inequality      | High parcel-quality inequality           |
 | Institutional uncertainty | Stable rules and shock environment | Uncertain rules and/or shock environment |
 
 The main contrasts are the high-inequality effect, the uncertainty effect, and their interaction.
