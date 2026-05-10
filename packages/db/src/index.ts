@@ -13,3 +13,4 @@ export {
   UncertaintyCondition,
   UserRole,
 } from "@prisma/client";
+export { seedDemo } from "./demoSeed";
