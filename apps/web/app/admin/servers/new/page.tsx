@@ -1,11 +1,13 @@
 import { AdminPageHeader } from "../../_components/ui";
+import { ConfigJsonForm } from "./ConfigJsonForm";
 import { createServer } from "./actions";
 
 export default function NewServerPage() {
   return (
     <>
-      <AdminPageHeader title="Create server" description="Create a draft experiment server and optionally generate the default 10x10 parcel map immediately." />
-      <form action={createServer} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <AdminPageHeader title="Create server" description="Create a draft experiment server manually or from a reproducible JSON config." />
+      <ConfigJsonForm />
+      <form action={createServer} className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="md:col-span-2 text-sm font-medium text-slate-700">Name<input name="name" required className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" /></label>
           <label className="md:col-span-2 text-sm font-medium text-slate-700">Description<textarea name="description" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" rows={3} /></label>
