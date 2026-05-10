@@ -35,8 +35,11 @@ export const apiError = (
 ): NextResponse<ApiResponse<never>> =>
   NextResponse.json({ ok: false, error: { code, message, details } }, { status });
 
-export const handleApiError = (error: unknown): NextResponse<ApiResponse<never>> => {
+export const handleApiError = (error: unknown, context?: Record<string, unknown>): NextResponse<ApiResponse<never>> => {
   if (error instanceof ApiException) {
+    if (error.status >= 500) {
+      console.error("API exception", { code: error.code, message: error.message, context, details: error.details });
+    }
     return apiError(error.status, error.code, error.message, error.details);
   }
 
@@ -44,6 +47,10 @@ export const handleApiError = (error: unknown): NextResponse<ApiResponse<never>>
     return apiError(400, "VALIDATION_ERROR", "Request validation failed.", error.flatten());
   }
 
-  console.error(error);
+  if (error instanceof SyntaxError) {
+    return apiError(400, "INVALID_JSON", "Request body must be valid JSON.");
+  }
+
+  console.error("Unhandled API error", { error, context });
   return apiError(500, "INTERNAL_SERVER_ERROR", "An unexpected error occurred.");
 };

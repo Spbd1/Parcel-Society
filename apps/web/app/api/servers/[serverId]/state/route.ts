@@ -13,7 +13,7 @@ export async function GET(_request: Request, context: { params: Promise<{ server
       include: {
         parcels: true,
         rounds: { orderBy: { roundNumber: "desc" }, take: 1 },
-        players: { select: { id: true, parcelId: true, wealth: true, reputation: true, exited: true } },
+        players: { select: { id: true, parcelId: true, exited: true } },
       },
     });
     const roundNumber = server?.rounds[0]?.roundNumber ?? server?.currentRound ?? 0;
