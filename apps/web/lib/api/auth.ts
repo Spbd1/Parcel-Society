@@ -1,9 +1,35 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma, UserRole } from "@parcel-society/db";
 import { ApiException } from "./responses";
 import { rateLimit } from "./rateLimit";
 
 const PARTICIPANT_COOKIE = "parcel_society_user_id";
+
+const appSecret = (): string => {
+  const secret = process.env.APP_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV !== "production") return "parcel-society-development-secret";
+  throw new ApiException(500, "APP_SECRET_NOT_CONFIGURED", "Participant session signing is not configured.");
+};
+
+const signParticipantId = (userId: string): string =>
+  createHmac("sha256", appSecret()).update(userId).digest("base64url");
+
+const encodeParticipantCookie = (userId: string): string => `${userId}.${signParticipantId(userId)}`;
+
+const decodeParticipantCookie = (value: string | undefined): string | null => {
+  if (!value) return null;
+  const separator = value.lastIndexOf(".");
+  if (separator <= 0) return null;
+  const userId = value.slice(0, separator);
+  const signature = value.slice(separator + 1);
+  const expected = signParticipantId(userId);
+  const signatureBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (signatureBuffer.length !== expectedBuffer.length) return null;
+  return timingSafeEqual(signatureBuffer, expectedBuffer) ? userId : null;
+};
 
 export type AuthContext = {
   user: {
@@ -17,7 +43,7 @@ export type AuthContext = {
 
 export const getParticipantAuth = async (): Promise<AuthContext> => {
   const cookieStore = await cookies();
-  const existingUserId = cookieStore.get(PARTICIPANT_COOKIE)?.value;
+  const existingUserId = decodeParticipantCookie(cookieStore.get(PARTICIPANT_COOKIE)?.value);
 
   if (existingUserId) {
     const user = await prisma.user.findUnique({
@@ -33,7 +59,7 @@ export const getParticipantAuth = async (): Promise<AuthContext> => {
   });
   return {
     user,
-    setCookie: { name: PARTICIPANT_COOKIE, value: user.id },
+    setCookie: { name: PARTICIPANT_COOKIE, value: encodeParticipantCookie(user.id) },
   };
 };
 
@@ -149,7 +175,7 @@ export const applyAuthCookie = <T extends Response>(
   if (auth.setCookie) {
     response.headers.append(
       "Set-Cookie",
-      `${auth.setCookie.name}=${auth.setCookie.value}; Path=/; HttpOnly; SameSite=Lax`,
+      `${auth.setCookie.name}=${auth.setCookie.value}; Path=/; HttpOnly; SameSite=Lax${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
     );
   }
   return response;

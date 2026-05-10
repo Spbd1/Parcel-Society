@@ -18,7 +18,7 @@
     "db:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "db:studio": "prisma studio --schema prisma/schema.prisma",
     "seed": "tsx scripts/seed.ts",
-    "db:deploy": "prisma db push --schema prisma/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {

@@ -178,3 +178,48 @@ describe("engine package", () => {
     ).toBe(true);
   });
 });
+
+describe("research treatment reproducibility", () => {
+  it("only applies configured uncertainty rule changes on uncertain servers", () => {
+    const stable = resolveRound({
+      server: createInitialServerState({
+        ...config,
+        uncertainty: "STABLE",
+        uncertaintyRuleChangeRounds: [1],
+        uncertaintyPossibleEvents: ["TAX_CHANGE"],
+      }),
+      players: createInitialPlayers(1, config),
+      parcels: [ownedParcel()],
+      decisions: [],
+      config: {
+        ...config,
+        uncertainty: "STABLE",
+        uncertaintyRuleChangeRounds: [1],
+        uncertaintyPossibleEvents: ["TAX_CHANGE"],
+      },
+      seed: "uncertainty-seed",
+    });
+    const uncertain = resolveRound({
+      server: createInitialServerState({
+        ...config,
+        uncertainty: "UNCERTAIN",
+        uncertaintyRuleChangeRounds: [1],
+        uncertaintyPossibleEvents: ["TAX_CHANGE"],
+      }),
+      players: createInitialPlayers(1, config),
+      parcels: [ownedParcel()],
+      decisions: [],
+      config: {
+        ...config,
+        uncertainty: "UNCERTAIN",
+        uncertaintyRuleChangeRounds: [1],
+        uncertaintyPossibleEvents: ["TAX_CHANGE"],
+      },
+      seed: "uncertainty-seed",
+    });
+
+    expect(stable.serverEvents).toHaveLength(0);
+    expect(uncertain.serverEvents).toHaveLength(1);
+    expect(uncertain.serverEvents[0]?.type).toBe("TAX_CHANGE");
+  });
+});
