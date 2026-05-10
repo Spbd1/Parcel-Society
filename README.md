@@ -1,182 +1,168 @@
 # Parcel Society
 
-Parcel Society is an open-source research software platform for reproducible online behavioral experiments. It is designed for studies in behavioral economics, political economy, social capital, and institutional trust.
+Parcel Society is an open-source research platform for reproducible online behavioral experiments. It lets researchers run small virtual societies where participants make repeated decisions about production, investment, public goods, contracts, lobbying, and exit under controlled institutional and inequality conditions.
 
-The first scientific version asks: **How do initial spatial inequality and institutional uncertainty affect cooperation, investment, public-good contribution, contract reliability, rent-seeking, and exit?**
+The project is intentionally simple: it is research software, not an entertainment game, crypto project, social network, or full-featured survey platform.
 
-## What Parcel Society Is
+## Research motivation
 
-- A minimal online behavioral-game platform for research
-- A reproducible environment where participants join small virtual societies called servers
-- A TypeScript monorepo foundation for a 10x10 parcel map, 7-round seasons, and 3 action points per player per round
-- A project that prioritizes deterministic seeded randomness, clean data exports, Docker deployment, and research data quality
+Many studies in behavioral economics, political economy, sociology, and institutional trust need environments where participants interact under transparent rules and where treatment assignment, decisions, and outcomes can be audited after the session. Parcel Society provides a lightweight TypeScript foundation for those studies.
 
-## What Parcel Society Is Not
+The initial research design asks:
 
-Parcel Society is not a normal entertainment game and is not a crypto, NFT, or metaverse project. The MVP intentionally excludes crypto, real-money payout logic, chat, elections, political parties, AI agents, complex macro simulation, live multiplayer graphics, inter-server trade, social-network features, and public leaderboards.
+> How do initial spatial inequality and institutional uncertainty affect cooperation, investment, public-good contribution, contract reliability, rent-seeking, and exit?
 
-## Scientific Motivation
+The core treatment design is a 2x2 experiment:
 
-Researchers often need lightweight experimental environments where treatment assignment, participant decisions, and outcomes can be reproduced and audited. Parcel Society focuses on a simple 2x2 design:
+| Inequality | Institutions | Description                                                                    |
+| ---------- | ------------ | ------------------------------------------------------------------------------ |
+| Low        | Stable       | Similar initial parcel opportunities and predictable institutions.             |
+| Low        | Uncertain    | Similar initial parcel opportunities and controlled institutional uncertainty. |
+| High       | Stable       | Unequal initial parcel opportunities and predictable institutions.             |
+| High       | Uncertain    | Unequal initial parcel opportunities and controlled institutional uncertainty. |
 
-1. Low inequality + stable institutions
-2. Low inequality + uncertain institutions
-3. High inequality + stable institutions
-4. High inequality + uncertain institutions
+Servers are the unit of treatment assignment because participants share a map, treasury, rounds, and institutional environment.
 
-The server is the core unit of randomization because participants share a parcel map, institutional context, and public-good environment.
+## Screenshots
 
-## MVP Scope
+Screenshots are not committed yet. Add release screenshots to `docs/images/` as the public demo stabilizes.
 
-The foundation release provides the monorepo, tooling, documentation skeleton, placeholder web pages, a minimal Prisma setup, shared constants, and engine type placeholders. It does not implement authentication, gameplay, admin workflows, CSV export, or detailed database models yet.
+Suggested placeholders:
 
-## Tech Stack
+- `docs/images/home.png` — public landing page.
+- `docs/images/admin-dashboard.png` — admin overview.
+- `docs/images/server-map.png` — 10x10 parcel map.
+- `docs/images/export-flow.png` — research export workflow.
 
-- TypeScript
-- pnpm workspaces
-- Next.js App Router
-- React
-- Tailwind CSS
-- Prisma
-- PostgreSQL
-- Docker Compose
-- Vitest
-- ESLint
-- Prettier
+## Quick start
 
-## Repository Structure
+Requirements:
 
-```text
-parcel-society/
-  apps/
-    web/          Next.js TypeScript app
-  packages/
-    db/           Prisma schema and database client package
-    engine/       TypeScript game engine package
-    shared/       Shared types, constants, and utilities
-  docs/           Research, mechanics, deployment, admin, and ethics notes
-```
-
-## Quick Start
+- Node.js 22 or newer
+- pnpm 10.28.1 or compatible via Corepack
+- PostgreSQL 16, either local or through Docker Compose
 
 ```bash
+corepack enable
 pnpm install
+cp .env.example .env
+docker compose up -d postgres
 pnpm db:generate
 pnpm db:migrate
+pnpm seed:demo
 pnpm dev
 ```
 
-Open <http://localhost:3000> to view the placeholder web app.
+Open <http://localhost:3000>. The admin area is available at <http://localhost:3000/admin/login>.
 
-## Docker Start
+## Docker start
+
+For local Docker development:
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
-Docker Compose starts PostgreSQL and the Next.js web app.
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and update values as needed.
+For the production-oriented Compose file:
 
 ```bash
-DATABASE_URL="postgresql://parcel:parcel_password@localhost:5432/parcel_society?schema=public"
-APP_SECRET="replace-with-a-long-random-secret"
-ADMIN_EMAIL="admin@example.com"
-ADMIN_PASSWORD="changeme"
-NODE_ENV="development"
+cp .env.example .env
+# Edit .env before any shared deployment.
+docker compose -f docker-compose.prod.yml up --build
 ```
 
-## Development Commands
-
-- `pnpm dev` - run the web app locally
-- `pnpm build` - build all workspace packages
-- `pnpm lint` - lint all workspace packages
-- `pnpm format` - format the repository with Prettier
-- `pnpm typecheck` - type-check all workspace packages
-- `pnpm test` - run Vitest across workspaces
-- `pnpm db:generate` - generate the Prisma client
-- `pnpm db:migrate` - run local Prisma migrations
-- `pnpm db:studio` - open Prisma Studio
-- `pnpm seed` - seed one admin and the four demo treatment servers
-- `pnpm seed:demo` - create the full local demo experiment with maps, anonymous players, synthetic decisions, and resolved rounds
-
-## Demo Mode
-
-Create a complete local demo experiment after installing dependencies, generating the Prisma client, and applying migrations:
+In another terminal, apply migrations if needed:
 
 ```bash
-pnpm seed:demo
+docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
 ```
 
-The demo seed creates one admin account, four active 2x2 treatment servers, a 10x10 map for each server, 20 anonymous demo participants per server, parcel assignments, a 7-round active season, synthetic decisions for rounds 1-3, resolved round states, contracts, treasury transactions, events, and dashboard-ready analytics. Running it again replaces the existing demo servers with a fresh deterministic demo dataset.
+## Demo credentials
 
-Demo login:
+The demo seed uses these local-only credentials by default:
 
 ```text
-admin@example.com
-changeme
+Email: admin@example.com
+Password: changeme
 ```
 
-Warning: Demo credentials are only for local development. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` for any shared or deployed environment.
+Do not use demo credentials in shared, hosted, classroom, pilot, or production environments. Set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_SECRET`, `NEXTAUTH_SECRET`, and database credentials in `.env` before deployment.
 
-## Database Migrations
+## Architecture
 
-Parcel Society uses Prisma with PostgreSQL. The schema lives at `packages/db/prisma/schema.prisma` and the generated client is exposed by `@parcel-society/db`.
+Parcel Society is a pnpm workspace with a small set of focused packages:
 
-1. Start PostgreSQL locally, for example with Docker Compose:
+```text
+apps/web/              Next.js App Router application and API routes
+packages/db/           Prisma schema, database client, and seed scripts
+packages/engine/       Deterministic game logic, validation, scoring, and simulations
+packages/shared/       Shared constants, types, and server configuration helpers
+packages/analysis/     Lightweight export-analysis helper scripts
+docs/                  Research, operations, ethics, and deployment documentation
+configs/               Example server and pilot configuration files
+deploy/                Deployment support files such as Nginx examples
+```
 
-   ```bash
-   docker compose up postgres -d
-   ```
+Runtime flow:
 
-2. Copy `.env.example` to `.env` and set `DATABASE_URL`:
+1. Researchers configure and create treatment servers.
+2. Participants join a server, complete checks, and play seven rounds.
+3. The engine resolves submitted decisions with seeded randomness.
+4. Admin pages summarize maps, players, rounds, contracts, events, and analytics.
+5. Research-safe ZIP/CSV exports support reproducible analysis outside the app.
 
-   ```bash
-   DATABASE_URL="postgresql://parcel:parcel_password@localhost:5432/parcel_society?schema=public"
-   ```
+## Research design
 
-3. Create and apply a migration after schema changes:
+The current study design uses seven-round seasons, three action points per participant per round, and 10x10 parcel maps. Initial parcel quality operationalizes inequality, while stable versus uncertain institutional conditions affect the reliability and predictability of rules or shocks.
 
-   ```bash
-   pnpm db:migrate -- --name describe_change
-   ```
+Confirmatory analysis should be preregistered before real data collection. The included analysis helper is descriptive and intended for pilots, diagnostics, and transparent release artifacts. See:
 
-4. Regenerate the Prisma client when the schema changes:
+- [`docs/research-design.md`](docs/research-design.md)
+- [`docs/game-mechanics.md`](docs/game-mechanics.md)
+- [`docs/analysis-plan.md`](docs/analysis-plan.md)
+- [`docs/ethics.md`](docs/ethics.md)
 
-   ```bash
-   pnpm db:generate
-   ```
+## Data exports
 
-5. Seed the development database with one admin and the four 2x2 treatment demo servers:
+Administrators can export research-safe ZIP files:
 
-   ```bash
-   pnpm seed
-   ```
+- `GET /api/admin/servers/:serverId/export.zip` for one server.
+- `GET /api/admin/export/all.zip` for all servers.
 
-6. Or create the complete demo mode dataset with active servers, players, synthetic decisions, and three resolved rounds:
+Exports are normalized CSV files and intentionally omit emails, names, IP addresses, authentication data, and direct personal identifiers. See [`docs/data-dictionary.md`](docs/data-dictionary.md) for tables, columns, and derived measures.
 
-   ```bash
-   pnpm seed:demo
-   ```
+## Development commands
 
-For non-development deployments, run Prisma migrations during release using the same schema path, for example `pnpm --filter @parcel-society/db prisma migrate deploy --schema prisma/schema.prisma`.
+```bash
+pnpm install       # install workspace dependencies
+pnpm dev           # run the web app locally
+pnpm typecheck     # type-check all packages
+pnpm lint          # lint all packages
+pnpm test          # run Vitest tests
+pnpm build         # build all packages
+pnpm format        # format Markdown, TypeScript, and config files
+pnpm db:generate   # generate Prisma client
+pnpm db:migrate    # run local Prisma migrations
+pnpm seed          # seed admin and treatment servers
+pnpm seed:demo     # seed deterministic demo data
+```
 
 ## Roadmap
 
-1. Add deterministic server configuration schemas.
-2. Implement seeded map generation for low- and high-inequality treatments.
-3. Add minimal participant decision storage.
-4. Build admin server creation and season controls.
-5. Implement round resolution in the engine.
-6. Add research-safe CSV exports.
-7. Harden deployment, authentication, and audit logging.
+- Stabilize public demo screenshots and release assets.
+- Expand pilot documentation with exact recruitment and session procedures.
+- Add more export validation and reproducibility checks.
+- Add preregistration templates for confirmatory studies.
+- Improve admin ergonomics without expanding the research design unnecessarily.
+- Keep mechanics simple, auditable, deterministic where appropriate, and easy to explain to participants.
 
 ## Contributing
 
-Contributions should preserve the scientific MVP scope. Avoid adding entertainment, social, crypto, or complex simulation features unless they are explicitly justified by the research design.
+Contributions are welcome when they keep the project stable, research-oriented, and easy to audit. Start with [`CONTRIBUTING.md`](CONTRIBUTING.md), open an issue for substantial changes, and avoid adding mechanics or features without a clear study-design reason.
+
+Good first contributions include documentation improvements, test coverage, validation edge cases, export checks, and small UI accessibility fixes.
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+Parcel Society is released under the MIT License. See [`LICENSE`](LICENSE).
