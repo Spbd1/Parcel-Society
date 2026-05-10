@@ -17,7 +17,8 @@
     "react-dom": "^19.1.0",
     "@parcel-society/db": "workspace:*",
     "@parcel-society/engine": "workspace:*",
-    "zod": "^3.24.4"
+    "zod": "^3.24.4",
+    "recharts": "^2.15.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.6",

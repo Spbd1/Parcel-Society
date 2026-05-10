@@ -1,0 +1,5 @@
+"use client";
+import { DataTable, type Column } from "../../../_components/DataTable";
+import { formatDate, formatMoney } from "../../../_components/format";
+export type RoundRow = { roundNumber: number; status: string; decisionsCount: number; eventsCount: number; treasuryChanges: number; aggregateOutcomes: string; startsAt: string; endsAt: string };
+export function RoundsTable({ rounds }: { rounds: RoundRow[] }) { const columns: Column<RoundRow>[] = [{key:"round",header:"Round",accessor:r=>r.roundNumber},{key:"status",header:"Status",accessor:r=>r.status,searchValue:r=>r.status},{key:"decisions",header:"Decisions",accessor:r=>r.decisionsCount},{key:"events",header:"Events",accessor:r=>r.eventsCount},{key:"treasury",header:"Treasury changes",accessor:r=>formatMoney(r.treasuryChanges)},{key:"outcomes",header:"Aggregate outcomes",accessor:r=>r.aggregateOutcomes,searchValue:r=>r.aggregateOutcomes},{key:"starts",header:"Starts",accessor:r=>formatDate(r.startsAt)},{key:"ends",header:"Ends",accessor:r=>formatDate(r.endsAt)}]; return <DataTable rows={rounds} columns={columns} placeholder="Search rounds by status or outcomes…" />; }
